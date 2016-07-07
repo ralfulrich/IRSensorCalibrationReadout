@@ -60,13 +60,15 @@ send(axisControl, "TERM=2") # response with plain text and 'OK'
 initAxis(1)
 initAxis(2)
 
-getRailStatus(axis)
+getRailStatus(1)
+getRailStatus(2)
 
 # initial position
 setTargetAndGo(1,300000)
 setTargetAndGo(2,300000)
 
-getRailStatus(axis)
+getRailStatus(1)
+getRailStatus(2)
 
 nStepsX = 10
 widthX = 2
