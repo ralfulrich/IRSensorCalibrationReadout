@@ -4,70 +4,98 @@ import serial
 import time
 import sys
 
-############################################################################
-############################################################################
-velocity = 50000 #150000 #180000
-accerleration = 10000 #200000          
-############################################################################
-############################################################################
-
-axisControl = serial.Serial("/dev/ttyACM0")
-axisControl.baudrate = 9600
-axisControl.timeout = 0.2
+from VC840 import * # VC840 multimeter
 
 def send(dev, command): # function for sending commands to the stage
     dev.write(command + "\r")
-    return command.strip(), dev.read(1024).strip()
+    time.sleep(0.1)
+    return dev.read(1024).strip()
 
-def doReferenceTravel(axis):    
-    send(axisControl, "RVELS"+str(axis)+"=2500" ) # set ref velocity default = 2500
-    send(axisControl, "RVELF"+str(axis)+"=-25000" ) # set ref velocity default = -25000
-    send(axisControl, "REF"+str(axis)+"=6") # drive to maximum -> minimum:: set minimum to zero
-    while send(axisControl, "?ASTAT") == ('?ASTAT', 'P'):# check, if stage is moving or reached target positon
-        time.sleep(1)
-    print 'Reference travel done'
+###############################################################
+ready = True
+print ""
+print ""
+print "Testing connections needed for calibration setup:"
+print ""
+print "Testing x/y axis connections:"
+try:
+	axisControl1 = serial.Serial("/dev/ttyACM0")
+	axisControl1.baudrate = 9600
+	axisControl1.timeout = 0.2
+	print "    Axis 1 connection OK"
+	try:
+		print "    Axis 1 communications protocol" , send(axisControl1, "TERM=2") # response with plain text and 'OK'
+	except:
+		print "    Axis 1 communications protocol not OK -> FIX!!!"
+		raise RuntimeError("Axis not working!")
+	try:
+		serNum1 = send(axisControl1, "?SERNUM")
+		print "    Axis 1 serialnumber", serNum1
+		if serNum1 == "14080004":
+			print "        this is the x-Axis"
+		elif serNum1 == "14080003":
+			print "        this is the y-Axis"
+		else:
+			print "        I don't know this serial number -> FIX!!!"
+		print "    Axis 1 status", send(axisControl1, "?ASTAT")
+	except:
+		print "Axis 1 communication not OK -> FIX!!!"
+		raise RuntimeError("Axis not working!")
+	print "    Axis 1 OK and working !"
+	print ""
+except:
+	print "    Axis 1 not OK -> FIX!!!"
+	print ""
+	ready = False
 
-def setTargetAndGo(axis,target):
-    send(axisControl, "PVEL"+str(axis)+"=" + str(velocity)) # set max velocity
-    send(axisControl, "ACC"+str(axis)+"=" + str(accerleration)) # set accerleration
-    send(axisControl, "PSET"+str(axis)+"="+str(target)) # set target position
-    send(axisControl, "PGO"+str(axis)+"")# start positioning the stage
-    while send(axisControl, "?ASTAT")[1] == 'T': # wait till movement is finished
-        time.sleep(1)
-    print 'Reached position at ' + str(int(send(axisControl, "?CNT1")[1])/10000.) +' mm'
+try:
+	axisControl2 = serial.Serial("/dev/ttyACM1")
+	axisControl2.baudrate = 9600
+	axisControl2.timeout = 0.2
+	print "    Axis 2 connection OK"
+	try:
+		print "    Axis 2 communications protocol" , send(axisControl2, "TERM=2") # response with plain text and 'OK'
+	except:
+		print "    Axis 2 communications protocol not OK -> FIX!!!"
+		raise RuntimeError("Axis not working!")
+	try:
+		serNum2 = send(axisControl2, "?SERNUM")
+		print "    Axis 2 serialnumber", serNum1
+		if serNum2 == "14080004":
+			print "        this is the x-Axis"
+		elif serNum2 == "14080003":
+			print "        this is the y-Axis"
+		else:
+			print "        I don't know this serial number -> FIX!!!"
+		print "    Axis 2 status", send(axisControl2, "?ASTAT")
+	except:
+		print "Axis 2 communication not OK -> FIX!!!"
+		raise RuntimeError("Axis not working!")
+	print "    Axis 2 OK and working !"
+	print ""
+except:
+	print "    Axis 2 not OK -> FIX!!!"
+	print ""
+	ready = False
 
-def getRailStatus(axis):
-    print 'Status of axis ' + str(axis) + ': ' + send(axisControl, "?ASTAT")[1] # stage status ausgaben
-    print 'Cuttent position: ' + send(axisControl, "?CNT"+str(axis)+"")[1] # current position
+print ""
+print ""
+print "Checking communication with multimeter:"
+try:
+	vc = VC840()
+	print "    serial port access OK"
+	try:
+	        vc._read_raw_value()
+		print "    communication OK"
+	except ValueError, e:
+		print "    communication not OK -> FIX!!!"
+		raise RuntimeError("Multimeter not working!")
 
-def turnOff(axis):
-    print 'Turning of axis ' + str(axis)
-    send(axisControl, "MOFF"+str(axis))
+except:
+	print "    multimeter not OK -> FIX!!!"
+	ready = False
 
-
-######################################################
-######################################################
-
-if not len(sys.argv) == 2:
-    print 'You need to give the axis number'
-    print 'Exiting...'
-    exit
-
-axis = int(sys.argv[1])
-
-send(axisControl, "TERM=2") # response with plain text and 'OK'
-
-send(axisControl, "INIT"+str(axis)) # initialize the stage
-print 'Initialization of axis ' +str(axis) +' done'
-
-doReferenceTravel(axis)
-
-setTargetAndGo(axis,300000)
-
-getRailStatus(axis)
-
-turnOff(axis)
-
-getRailStatus(axis)
-
-exit
+print ""
+if ready: print "All checks are OK! You are ready to Go!!!"
+if not ready: print "Not all checks are OK! Please fix everything and redo this test!!!"
+sys.exit

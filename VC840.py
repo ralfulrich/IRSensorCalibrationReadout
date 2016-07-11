@@ -39,7 +39,7 @@ class seven_element_digit(object):
         elif digit == [0, 0, 0, 0, 0, 0, 0]:  # ' '
             return 0
         else:
-            print 'could not decode digit', digit
+            #print 'could not decode digit', digit
             raise ValueError('could not decode digit')
 
     def decode(self, b1, b2):
@@ -226,3 +226,30 @@ class VC840(object):
         except TypeError:
             # should happen only for Ohm measurements when 'L' is displayed
             self.value = 'Inf'
+
+    def readVoltage(self,prefix):
+        try:
+            self._read_raw_value()
+        except ValueError, e:
+            return None
+
+        if not self.data:
+            return None
+
+        self.decode()
+        if self.Error:
+            return None
+
+        if self.unit != "V":
+            return None
+
+	if self.value == 'Inf':
+	    return None
+
+	if prefix == "m":
+	    return self.value*1000.
+	else:
+	    return self.value
+
+    #time.sleep(0.001)
+
