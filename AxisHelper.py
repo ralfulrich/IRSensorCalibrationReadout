@@ -77,3 +77,61 @@ def moveRelative(axis, target):
 	if send(axis, "?MODE") == "ABSOL":
 		setRelative(axis)
 	setTargetAndGo(axis,target)
+
+
+class XYTable:
+    def __init__(self):
+        print "Initializing the x/y axis..."
+        try:
+            axisControl1 = serial.Serial("/dev/ttyACM0")
+            axisControl1.baudrate = 9600
+            axisControl1.timeout = 0.2
+
+            axisControl2 = serial.Serial("/dev/ttyACM1")
+            axisControl2.baudrate = 9600
+            axisControl2.timeout = 0.2
+
+            send(axisControl1, "TERM=2") # response with plain text and 'OK'
+            send(axisControl2, "TERM=2") # response with plain text and 'OK'
+
+            xyMatching = False
+            self.xAxis = None
+            self.yAxis = None
+            serNum1 = send(axisControl1, "?SERNUM")
+            serNum2 = send(axisControl2, "?SERNUM")
+            if serNum1 == "14080004":
+            	self.xAxis = axisControl1
+            elif serNum1 == "14080003":
+            	self.yAxis = axisControl1
+            if serNum2 == "14080004":
+            	self.xAxis = axisControl2
+            elif serNum2 == "14080003":
+            	self.yAxis = axisControl2
+    
+            if self.xAxis and self.yAxis: xyMatching = True
+            if not xyMatching:
+            	print "Could not determine, which cotrol unit to use for the x and y axis! Please ask an expert!"
+
+            if send(self.xAxis, "?ASTAT") == 'I' or send(self.yAxis, "?ASTAT") == 'I':
+            	initAxis(self.xAxis)
+            	initAxis(self.yAxis)
+            elif send(self.xAxis, "?ASTAT") == 'O' or send(self.yAxis, "?ASTAT") == 'O':
+            	turnOn(xAxis)
+            	turnOn(yAxis)
+        except:
+   			print "Axis communication not OK -> FIX!!!"
+			raise RuntimeError("Axis not working!")
+
+        print "... done."
+        return True
+
+    def doReference():
+        send(self.xAxis, "RVELS1=50000" ) # set ref velocity default = 2500
+        send(self.xAxis, "RVELF1=-50000" ) # set ref velocity default = -25000
+        send(self.xAxis, "REF1=6") # drive to maximum -> minimum:: set minimum to zero
+        send(self.yAxis, "RVELS1=50000" ) # set ref velocity default = 2500
+        send(self.yAxis, "RVELF1=-50000" ) # set ref velocity default = -25000
+        send(self.yAxis, "REF1=6") # drive to maximum -> minimum:: set minimum to zero
+        while send(self.xAxis, "?ASTAT") == 'P' or send(self.yAxis, "?ASTAT") == 'P':# check, if stage is moving or reached target positon
+            time.sleep(1)
+        return True
