@@ -116,16 +116,17 @@ class XYTable:
             	initAxis(self.xAxis)
             	initAxis(self.yAxis)
             elif send(self.xAxis, "?ASTAT") == 'O' or send(self.yAxis, "?ASTAT") == 'O':
-            	turnOn(xAxis)
-            	turnOn(yAxis)
+            	turnOn(self.xAxis)
+            	turnOn(self.yAxis)
         except:
    			print "Axis communication not OK -> FIX!!!"
 			raise RuntimeError("Axis not working!")
 
         print "... done."
-        return True
 
-    def doReference():
+
+    def doReference(self):
+        print "Reference scan of xy table..."
         send(self.xAxis, "RVELS1=50000" ) # set ref velocity default = 2500
         send(self.xAxis, "RVELF1=-50000" ) # set ref velocity default = -25000
         send(self.xAxis, "REF1=6") # drive to maximum -> minimum:: set minimum to zero
@@ -134,4 +135,29 @@ class XYTable:
         send(self.yAxis, "REF1=6") # drive to maximum -> minimum:: set minimum to zero
         while send(self.xAxis, "?ASTAT") == 'P' or send(self.yAxis, "?ASTAT") == 'P':# check, if stage is moving or reached target positon
             time.sleep(1)
+        print "... done."
         return True
+
+    def turnOff(self):
+        print "Turning off the axis..."
+        send(self.xAxis, "MOFF1")
+        send(self.yAxis, "MOFF1")
+        print "... done."
+
+    def move(self, mode, axis, target):
+        if axis == "x":
+        	if mode == "a":
+        		setAbsolute(self.xAxis)
+        	if mode == "r":
+        		setRelative(self.xAxis)
+        	setTargetAndGo(self.xAxis,target)
+        if axis == "y":
+        	if mode == "a":
+        		setAbsolute(self.yAxis)
+        	if mode == "r":
+        		setRelative(self.yAxis)
+        	setTargetAndGo(self.yAxis,target)
+
+    def getCurrentPosition(self):
+        return int(send(self.xAxis, "?CNT1")), int(send(self.yAxis, "?CNT1"))
+        
