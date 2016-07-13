@@ -123,9 +123,22 @@ while(True):
             continue
 
         print "Preparing sensor scan..."
-        outputFilename = raw_input("filename to save the output (no file extension please)")
-        stepsize = float(raw_input("scanning stepsize in mm:"))
-        scanRange= float(raw_input("total scanning range in mm:"))
+        sensorID = raw_input("sensor ID (e.g. 'IR766'): ")
+        stepsize = float(raw_input("initial minimal distance to the beampipe in mm: "))
+        scanRange= float(raw_input("total scanning range in mm: "))
+        stepsize = float(raw_input("scanning stepsize in mm: "))
+
+        filename = "../data/sensorScan_"+str(sensorID)+"_scanRange"+str(scanRange)+"_stepSize"+str(stepsize)+"_initialOffset"+str(initialOffset)+".dat"
+        print "Saving measurement to ",filename
+        if os.path.exists(filename):
+            filename +="_2"
+            print "File already exists! Using", filename, "instead. Please rename the file afterwards."
+
+        outputFile = open(filename,'w')
+        outputFile.write("# Sensor scan measurement of Sensor"+str(sensorID)+"\n")
+        outputFile.write("# scanRange "+str(scanRange)+"mm; stepSize "+str(stepsize)+"mm; initialOffset "+str(initialOffset)+"mm"+"\n")
+        outputFile.write("# iStep x, iStep y, Pos x, Pos y, nMean, Meas1 ... MeasN"+"\n")
+
         try:
             nSteps = int(scanRange/stepsize)
 
@@ -146,6 +159,7 @@ while(True):
                         if meas:
                             voltage.append(meas)
                     print i,j,position[0]/10000., position[1]/10000., voltage
+                    outputFile.write(str(i)+str(j)+str(position[0]/10000.)+str(position[1]/10000.)+str(voltage))
                 xyTable.move("r","x",-1*nSteps*stepsize*10000.)
                 xyTable.move("r","y",-1*stepsize*10000.)
 
@@ -159,6 +173,8 @@ while(True):
 
         except IndentationError:
             print "Are you sure the xy table is well initialized?!"
+
+        outputFile.close()
         continue
 
 
