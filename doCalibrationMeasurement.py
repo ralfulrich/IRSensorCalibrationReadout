@@ -124,7 +124,7 @@ while(True):
 
         print "Preparing sensor scan..."
         sensorID = raw_input("sensor ID (e.g. 'IR766'): ")
-        stepsize = float(raw_input("initial minimal distance to the beampipe in mm: "))
+        initialOffset = float(raw_input("initial minimal distance to the beampipe in mm: "))
         scanRange= float(raw_input("total scanning range in mm: "))
         stepsize = float(raw_input("scanning stepsize in mm: "))
 
@@ -135,9 +135,9 @@ while(True):
             print "File already exists! Using", filename, "instead. Please rename the file afterwards."
 
         outputFile = open(filename,'w')
-        outputFile.write("# Sensor scan measurement of Sensor"+str(sensorID)+"\n")
-        outputFile.write("# scanRange "+str(scanRange)+"mm; stepSize "+str(stepsize)+"mm; initialOffset "+str(initialOffset)+"mm"+"\n")
-        outputFile.write("# iStep x, iStep y, Pos x, Pos y, nMean, Meas1 ... MeasN"+"\n")
+        outputFile.write("# Sensor scan measurement of Sensor "+str(sensorID)+"\n")
+        outputFile.write("# scanRange {:6.2f} mm; stepSize {:6.2f} mm; initialOffset {:6.2f} mm\n".format(scanRange,stepsize,initialOffset))
+        outputFile.write("# iStep x, iStep y, Pos x, Pos y, nMeas, Meas1 ... MeasN\n")
 
         try:
             nSteps = int(scanRange/stepsize)
@@ -158,8 +158,10 @@ while(True):
                         meas = vc.readVoltage("m")
                         if meas:
                             voltage.append(meas)
-                    print i,j,position[0]/10000., position[1]/10000., voltage
-                    outputFile.write(str(i)+str(j)+str(position[0]/10000.)+str(position[1]/10000.)+str(voltage))
+                    outputFile.write("{:3d} {:3d} {:7.2f} {:7.2f} {:3d}".format(i,j,position[0]/10000.,position[1]/10000.,len(voltage)))
+                    for n in range(len(voltage)):
+                        outputFile.write(" {:12.4f}".format(voltage[n]))
+                    outputFile.write("\n")
                 xyTable.move("r","x",-1*nSteps*stepsize*10000.)
                 xyTable.move("r","y",-1*stepsize*10000.)
 
@@ -174,6 +176,7 @@ while(True):
         except IndentationError:
             print "Are you sure the xy table is well initialized?!"
 
+        outputFile.write("# END")
         outputFile.close()
         continue
 
