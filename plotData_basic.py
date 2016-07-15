@@ -38,10 +38,14 @@ V = np.array(VTmp)
 grid = V.reshape((nrows, ncols))
 
 
-fig = plt.figure(figsize=(10, 10))
-ax = fig.add_subplot(111)
-ax.set_title(filename)
+fig = plt.figure(figsize=[8,8])
+ax = fig.gca()
+
+plt.xlabel('x [mm]',fontsize=18)
+plt.ylabel('y [mm]',fontsize=18)
+plt.title(filename,fontsize=18)
+
 plt.imshow(grid, extent=(x.min(), x.max(), y.max(), y.min()),
            interpolation='nearest', cmap=cm.gist_earth)
-plt.colorbar(orientation='vertical')
-plt.show()
+
+plt.savefig("SensorData.png",bbox_inches="tight")
