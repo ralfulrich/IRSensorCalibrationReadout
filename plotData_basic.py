@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import math
 
 filename = str(sys.argv[1])
 with open(filename,'r') as f:
@@ -29,17 +30,17 @@ with open(filename,'r') as f:
             if values[5+i]  < 1e5:
                 Meas +=values[5+i] 
                 nMeas += 1
-        Meas/= nMeas
+        if nMeas != 0:
+            Meas/= nMeas
         
         xTmp.append(xPos)
         yTmp.append(yPos)
         if Meas > 1e5:
-            print "ERROR", xStep, yStep, Meas
             VTmp.append(0)
         else:
             VTmp.append(Meas)
 
-nrows, ncols = 41, 41
+nrows, ncols = int(math.sqrt(len(xTmp))), int(math.sqrt(len(xTmp)))
 
 x = np.array(xTmp)
 y = np.array(yTmp)

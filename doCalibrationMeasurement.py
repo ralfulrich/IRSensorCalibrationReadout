@@ -7,6 +7,7 @@ import sys, os
 from VC840 import * # VC840 multimeter
 from connectionCheck import doConnectionCheck
 from AxisHelper import *
+from progressbar import *
 
 ######################################################
 os.system('clear')
@@ -128,50 +129,84 @@ while(True):
         scanRange= float(raw_input("total scanning range in mm: "))
         stepsize = float(raw_input("scanning stepsize in mm: "))
 
-        filename = "../data/sensorScan_"+str(sensorID)+"_scanRange"+str(scanRange)+"_stepSize"+str(stepsize)+"_initialOffset"+str(initialOffset)+".dat"
-        print "Saving measurement to ",filename
-        if os.path.exists(filename):
-            filename +="_2"
-            print "File already exists! Using", filename, "instead. Please rename the file afterwards."
+        filename = "../data/sensorScan_"+str(sensorID)+"_scanRange"+str(scanRange)+"_stepSize"+str(stepsize)+"_initialOffset"+str(initialOffset)
+        version = 1
+        print "Saving measurement to ",filename+"_"+str(version)+".dat"
+        while os.path.exists(filename+"_"+str(version)+".dat"):
+            version += 1
+            print "File already exists! Using", filename+"_"+str(version)+".dat", "instead."
 
-        outputFile = open(filename,'w')
+        nSteps = int(scanRange/stepsize)+1
+        print "Will scan", nSteps, "steps in each direction with", stepsize, "mm spacing..."
+        StartPosition = xyTable.getCurrentPosition()
+        StartTime = time.time()
+
+        outputFile = open(filename+"_"+str(version)+".dat",'w',0)
         outputFile.write("# Sensor scan measurement of Sensor "+str(sensorID)+"\n")
-        outputFile.write("# scanRange {:6.2f} mm; stepSize {:6.2f} mm; initialOffset {:6.2f} mm\n".format(scanRange,stepsize,initialOffset))
+        outputFile.write("# scanRange {:6.2f} mm; stepSize {:6.2f} mm; initialOffset {:6.2f} mm; start position at (x|y)=({:6.2f}|{:6.2f}) mm\n".format(scanRange,stepsize,initialOffset,StartPosition[0],StartPosition[1]))
         outputFile.write("# iStep x, iStep y, Pos x, Pos y, nMeas, Meas1 ... MeasN\n")
 
+        # add later: ideal start position is 65 | 133 mm with an initial offset of ~4 mm
+
+        xDirection = 1
+
         try:
-            nSteps = int(scanRange/stepsize)
+            xyTable.move("r","x",-1*xDirection*int(nSteps/2)*stepsize*10000.)
 
-            print "Will scan", nSteps, "steps in each direction with", stepsize, "mm spacing..."
+            print ""
 
-            StartPosition = xyTable.getCurrentPosition()
-            StartTime = time.time()
-            xyTable.move("r","x",-1*int(nSteps/2)*stepsize*10000.)
+            pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()], maxval=(nSteps*nSteps)).start()
 
-            for i in range(nSteps+1):
-                for j in range(nSteps+1):
+            for i in range(nSteps):
+                for j in range(nSteps):
                     if not j==0:
-                        xyTable.move("r","x",stepsize*10000.)
+                        xyTable.move("r","x",xDirection*stepsize*10000.)
                     position = xyTable.getCurrentPosition()
+
                     voltage = []
+
+                    # check for stability
                     for m in range(10):
+                        tmp1 = None
+                        tmp2 = None
+                        while tmp1 == None or tmp2==None:
+                            tmp1 = vc.readVoltage("m")
+                            time.sleep(0.2)
+                            tmp2 = vc.readVoltage("m")
+                        if (tmp1-tmp2)<(0.05*tmp1):
+                            break
+
+                    # save up to 5 values
+                    for m in range(5):
                         meas = vc.readVoltage("m")
                         if meas:
                             voltage.append(meas)
-                    outputFile.write("{:3d} {:3d} {:7.2f} {:7.2f} {:3d}".format(i,j,position[0]/10000.,position[1]/10000.,len(voltage)))
+
+                    if len(voltage) < 4:
+                        voltage = []
+                        for m in range(5):
+                            meas = vc.readVoltage("m")
+                            if meas:
+                                voltage.append(meas)
+
+                    # write to output file
+                    outputFile.write("{:3d} {:3d} {:7.2f} {:7.2f} {:3d}".format(j,i,position[0]/10000.,position[1]/10000.,len(voltage)))
                     for n in range(len(voltage)):
                         outputFile.write(" {:12.4f}".format(voltage[n]))
                     outputFile.write("\n")
-                xyTable.move("r","x",-1*nSteps*stepsize*10000.)
+                    pbar.update(i*(nSteps) + j+1)
+
+                xyTable.move("r","x",-1*xDirection*(nSteps-1)*stepsize*10000.)
                 xyTable.move("r","y",-1*stepsize*10000.)
 
+            pbar.finish()
             EndTime = time.time()
             print "... done."
             print "The scan took", (EndTime-StartTime), "seconds."
-            print "Will return to start position now."
+            print "Will return to 0|0 now."
 
-            xyTable.move("a","x",StartPosition[0])
-            xyTable.move("a","y",StartPosition[1])
+            xyTable.move("a","x",0)
+            xyTable.move("a","y",0)
 
         except IndentationError:
             print "Are you sure the xy table is well initialized?!"

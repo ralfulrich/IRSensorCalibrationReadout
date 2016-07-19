@@ -4,7 +4,7 @@ import sys
 
 def send(dev, command): # function for sending commands to the stage
     dev.write(command + "\r")
-    time.sleep(0.1)
+    time.sleep(0.05)
     return dev.read(1024).strip()
 
 def initAxis(axis):
@@ -33,7 +33,7 @@ def setTargetAndGo(axis,target):
     send(axis, "PSET1="+str(target)) # set target position
     send(axis, "PGO1")# start positioning the stage
     while send(axis, "?ASTAT") == 'T': # wait till movement is finished
-        time.sleep(1)
+        time.sleep(0.1)
 
 def setTargetAndGo2D(axisA,targetA,axisB,targetB):
     send(axisA, "PSET1="+str(targetA)) # set target position
@@ -130,10 +130,12 @@ class XYTable:
         send(self.xAxis, "RVELS1=50000" ) # set ref velocity default = 2500
         send(self.xAxis, "RVELF1=-50000" ) # set ref velocity default = -25000
         send(self.xAxis, "REF1=6") # drive to maximum -> minimum:: set minimum to zero
+        while send(self.xAxis, "?ASTAT") == 'P':# check, if stage is moving or reached target positon
+            time.sleep(1)
         send(self.yAxis, "RVELS1=50000" ) # set ref velocity default = 2500
         send(self.yAxis, "RVELF1=-50000" ) # set ref velocity default = -25000
         send(self.yAxis, "REF1=6") # drive to maximum -> minimum:: set minimum to zero
-        while send(self.xAxis, "?ASTAT") == 'P' or send(self.yAxis, "?ASTAT") == 'P':# check, if stage is moving or reached target positon
+        while send(self.yAxis, "?ASTAT") == 'P':# check, if stage is moving or reached target positon
             time.sleep(1)
         print "... done."
         return True
