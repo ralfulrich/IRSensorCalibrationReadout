@@ -187,10 +187,10 @@ while(True):
         for i in range(nSteps):
             for j in range(nSteps):
                 if mode=="a":
-                    if isInEllipse(startPosition[0]/10000+j*stepsize,startPosition[1]/10000+i*stepsize,scanningEllipse_x0,scanningEllipse_y0,scanningEllipse_a,scanningEllipse_b):
-                        scanPositions.append([startPosition[0]+j*stepsize*10000,startPosition[1]+i*stepsize*10000])
+                    if isInEllipse(startPosition[0]/10000+j*stepsize,startPosition[1]/10000-i*stepsize,scanningEllipse_x0,scanningEllipse_y0,scanningEllipse_a,scanningEllipse_b):
+                        scanPositions.append([startPosition[0]+j*stepsize*10000,startPosition[1]-i*stepsize*10000])
                 else:
-                    scanPositions.append([startPosition[0]+j*stepsize*10000,startPosition[1]+i*stepsize*10000])       
+                    scanPositions.append([startPosition[0]+j*stepsize*10000,startPosition[1]-i*stepsize*10000])       
 
         # start scan
         print "Will scan", len(scanPositions), "positions with", stepsize, "mm spacing in", ("automatic" if mode=="a" else "manual square"), "mode:"
@@ -198,7 +198,7 @@ while(True):
         outputFile = open(filename+"_"+str(version)+".dat",'w',1)
         outputFile.write("# Sensor scan measurement of Sensor "+str(sensorID)+"\n")
         outputFile.write("# scanRange {:6.2f} mm; stepSize {:6.2f} mm; initialOffset {:6.2f} mm; start position at (x|y)=({:6.2f}|{:6.2f}) mm\n".format(scanRange,stepsize,initialOffset,startPosition[0]/10000,startPosition[1]/10000))
-        outputFile.write("# iStep x, iStep y, Pos x, Pos y, nMeas, Meas1 ... MeasN\n")
+        outputFile.write("# iStep, Pos x, Pos y, nMeas, Meas1 ... MeasN\n")
 
         try:
             print ""
@@ -222,7 +222,7 @@ while(True):
                         tmp1 = vc.readVoltage("m")
                         time.sleep(0.2)
                         tmp2 = vc.readVoltage("m")
-                    if (tmp1-tmp2)<(0.01*tmp1):
+                    if (tmp1-tmp2)<(0.05*tmp1):
                         break
 
                 # save up to 5 values
@@ -239,7 +239,7 @@ while(True):
                             voltage.append(meas)
 
                 # write to output file
-                outputFile.write("{:3d} {:3d} {:7.2f} {:7.2f} {:3d}".format(j,i,position[0]/10000.,position[1]/10000.,len(voltage)))
+                outputFile.write("{:6d} {:7.2f} {:7.2f} {:3d}".format(progress-1,position[0]/10000.,position[1]/10000.,len(voltage)))
                 for n in range(len(voltage)):
                     outputFile.write(" {:12.4f}".format(voltage[n]))
                 outputFile.write("\n")
