@@ -129,8 +129,8 @@ while(True):
 
         if not raw_input("The sensor should be centered infront of the target. Is this true? (y/n) ") == "y":
             if raw_input("Do you want to go to the standard starting position? (y/n) ") == "y":
-                xyTable.move("a","x",scanningEllipse_x0*10000.)
-                xyTable.move("a","x",scanningEllipse_y0*10000.)
+                xyTable.move("a","x",int(scanningEllipse_x0*10000))
+                xyTable.move("a","y",int(scanningEllipse_y0*10000))
             else:
                 print "Do you know what you are doing? Please think first - I will quit now..."
                 continue
@@ -171,9 +171,9 @@ while(True):
 
         print "Moving to start position..."
         try:
-            centralPosition = xyTable.getCurrentPosition()/10000.
-            xyTable.move("r","x",-1*xDirection*int(nSteps/2)*stepsize*10000.)
-            startPosition = xyTable.getCurrentPosition()/10000.
+            centralPosition = xyTable.getCurrentPosition()
+            xyTable.move("r","x",-1*xDirection*int(nSteps/2)*stepsize*10000)
+            startPosition = xyTable.getCurrentPosition()
         except:
             print "Are you sure the xy table is well initialized?!"
             print "quitting..."
@@ -187,27 +187,29 @@ while(True):
         for i in range(nSteps):
             for j in range(nSteps):
                 if mode=="a":
-                    if isInEllipse(startPosition[0]+j*stepsize,startPosition[1]+i*stepsize,scanningEllipse_x0,scanningEllipse_y0,scanningEllipse_a,scanningEllipse_b):
-                        scanPositions.append([startPosition[0]+j*stepsize,startPosition[1]+i*stepsize])
+                    if isInEllipse(startPosition[0]/10000+j*stepsize,startPosition[1]/10000+i*stepsize,scanningEllipse_x0,scanningEllipse_y0,scanningEllipse_a,scanningEllipse_b):
+                        scanPositions.append([startPosition[0]+j*stepsize*10000,startPosition[1]+i*stepsize*10000])
                 else:
-                    scanPositions.append([startPosition[0]+j*stepsize,startPosition[1]+i*stepsize])       
+                    scanPositions.append([startPosition[0]+j*stepsize*10000,startPosition[1]+i*stepsize*10000])       
 
         # start scan
-        print "Will scan", len(scanPositions), "positions with", stepsize, "mm spacing in", ("automatic" if mode=="a" else "manual square"), " mode:"
+        print "Will scan", len(scanPositions), "positions with", stepsize, "mm spacing in", ("automatic" if mode=="a" else "manual square"), "mode:"
         StartTime = time.time()
-        outputFile = open(filename+"_"+str(version)+".dat",'w',0)
+        outputFile = open(filename+"_"+str(version)+".dat",'w',1)
         outputFile.write("# Sensor scan measurement of Sensor "+str(sensorID)+"\n")
-        outputFile.write("# scanRange {:6.2f} mm; stepSize {:6.2f} mm; initialOffset {:6.2f} mm; start position at (x|y)=({:6.2f}|{:6.2f}) mm\n".format(scanRange,stepsize,initialOffset,StartPosition[0],StartPosition[1]))
+        outputFile.write("# scanRange {:6.2f} mm; stepSize {:6.2f} mm; initialOffset {:6.2f} mm; start position at (x|y)=({:6.2f}|{:6.2f}) mm\n".format(scanRange,stepsize,initialOffset,startPosition[0]/10000,startPosition[1]/10000))
         outputFile.write("# iStep x, iStep y, Pos x, Pos y, nMeas, Meas1 ... MeasN\n")
 
         try:
             print ""
 
             pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()], maxval=len(scanPositions)).start()
+            progress = 0
 
             for pos in scanPositions:
-                xyTable.move("a","x",scanPositions[0]*10000.)
-                xyTable.move("a","x",scanPositions[1]*10000.)
+                progress +=1
+                xyTable.move("a","x",pos[0])
+                xyTable.move("a","y",pos[1])
                 position = xyTable.getCurrentPosition()
 
                 voltage = []
@@ -220,7 +222,7 @@ while(True):
                         tmp1 = vc.readVoltage("m")
                         time.sleep(0.2)
                         tmp2 = vc.readVoltage("m")
-                    if (tmp1-tmp2)<(0.05*tmp1):
+                    if (tmp1-tmp2)<(0.01*tmp1):
                         break
 
                 # save up to 5 values
@@ -241,19 +243,20 @@ while(True):
                 for n in range(len(voltage)):
                     outputFile.write(" {:12.4f}".format(voltage[n]))
                 outputFile.write("\n")
-                pbar.update(i*(nSteps) + j+1)
+                pbar.update(progress)
 
             pbar.finish()
-            EndTime = time.time()
-            print "... done."
-            print "The scan took", (EndTime-StartTime), "seconds."
-            print "Will return to 0|0 now."
-
-            xyTable.move("a","x",0)
-            xyTable.move("a","y",0)
 
         except:
             print "Are you sure the xy table is well initialized?!"
+            continue
+
+        EndTime = time.time()
+        print "... done."
+        print "The scan took", (EndTime-StartTime), "seconds."
+        print "Will return to 0|0 now."
+        xyTable.move("a","x",0)
+        xyTable.move("a","y",0)
 
         outputFile.write("# END: scan time was  "+str(EndTime)+"  seconds")
         outputFile.close()
