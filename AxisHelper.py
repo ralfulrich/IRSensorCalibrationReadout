@@ -148,17 +148,20 @@ class XYTable:
 
     def move(self, mode, axis, target):
         if axis == "x":
-        	if mode == "a":
-        		setAbsolute(self.xAxis)
+            #default is absolute, so set first to relative
         	if mode == "r":
         		setRelative(self.xAxis)
+            # go
         	setTargetAndGo(self.xAxis,target)
+            # set back to absolute
+        	if mode == "r":
+        		setAbsolute(self.xAxis)
         if axis == "y":
-        	if mode == "a":
-        		setAbsolute(self.yAxis)
         	if mode == "r":
         		setRelative(self.yAxis)
         	setTargetAndGo(self.yAxis,target)
+        	if mode == "r":
+        		setAbsolute(self.yAxis)
 
     def getCurrentPosition(self):
         return int(send(self.xAxis, "?CNT1")), int(send(self.yAxis, "?CNT1"))

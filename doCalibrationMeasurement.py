@@ -9,6 +9,18 @@ from connectionCheck import doConnectionCheck
 from AxisHelper import *
 from progressbar import *
 
+
+def isInEllipse(x,y,x0,y0,a,b):
+    if (x-x0)*(x-x0)/a/a+(y-y0)*(y-y0)/b/b <= 1.:
+        return True
+    else:
+        return False
+
+scanningEllipse_x0 = 62.
+scanningEllipse_y0 = 133.
+scanningEllipse_a = 35.
+scanningEllipse_b = 70.
+
 ######################################################
 os.system('clear')
 tableInitialized = False
@@ -28,7 +40,7 @@ while(True):
     print "ref: do reference scan of both axis (recommended if the axis controls have been turned off)"
     print "pos: print current position of the xy table"
     print "move: manual movements of the axis (used to set start position)"
-    print "scan: automatic scan of the sensor (details can still be specified)"
+    print "scan: scan of the sensor (details can still be specified)"
     print "off: turn off both axis (usefull if you make a break)"
     print "quit: quit this program"
     print "--------------------------------------------------------------------------------------------"
@@ -125,9 +137,24 @@ while(True):
 
         print "Preparing sensor scan..."
         sensorID = raw_input("sensor ID (e.g. 'IR766'): ")
-        initialOffset = float(raw_input("initial minimal distance to the beampipe in mm: "))
-        scanRange= float(raw_input("total scanning range in mm: "))
-        stepsize = float(raw_input("scanning stepsize in mm: "))
+        mode = raw_input("automatic or manual setup of the scan parameters? (a/m): ")
+
+        scanRange= 0.
+        stepsize = 0.
+        initialOffset= 0.
+        xDirection = 1
+
+        if mode == "a":
+            scanRange= 70.
+            stepsize = 1.
+            initialOffset = 4.
+
+        else:
+            scanRange= float(raw_input("total scanning range in mm: "))
+            stepsize = float(raw_input("scanning stepsize in mm: "))
+            initialOffset = float(raw_input("initial minimal distance to the beampipe in mm: "))
+
+        nSteps = int(scanRange/stepsize)+1
 
         filename = "../data/sensorScan_"+str(sensorID)+"_scanRange"+str(scanRange)+"_stepSize"+str(stepsize)+"_initialOffset"+str(initialOffset)
         version = 1
@@ -136,68 +163,83 @@ while(True):
             version += 1
             print "File already exists! Using", filename+"_"+str(version)+".dat", "instead."
 
-        nSteps = int(scanRange/stepsize)+1
-        print "Will scan", nSteps, "steps in each direction with", stepsize, "mm spacing..."
-        StartPosition = xyTable.getCurrentPosition()
-        StartTime = time.time()
+        centralPosition=[0,0]
 
+        print "Moving to start position..."
+        try:
+            centralPosition = xyTable.getCurrentPosition()/10000.
+            xyTable.move("r","x",-1*xDirection*int(nSteps/2)*stepsize*10000.)
+            startPosition = xyTable.getCurrentPosition()/10000.
+        except:
+            print "Are you sure the xy table is well initialized?!"
+            print "quitting..."
+            continue
+
+        # calulate positions where to measure
+        # if automatic eliplic, else square
+        # i: y, j:x
+
+        scanPositions = []
+        for i in range(nSteps):
+            for j in range(nSteps):
+                if mode=="a":
+                    if isInEllipse(startPosition[0]+j*stepsize,startPosition[1]+i*stepsize,scanningEllipse_x0,scanningEllipse_y0,scanningEllipse_a,scanningEllipse_b):
+                        scanPositions.append([startPosition[0]+j*stepsize,startPosition[1]+i*stepsize])
+                else:
+                    scanPositions.append([startPosition[0]+j*stepsize,startPosition[1]+i*stepsize])       
+
+        # start scan
+        print "Will scan", len(scanPositions), "positions with", stepsize, "mm spacing in", ("automatic" if mode=="a" else "manual square"), " mode:"
+        StartTime = time.time()
         outputFile = open(filename+"_"+str(version)+".dat",'w',0)
         outputFile.write("# Sensor scan measurement of Sensor "+str(sensorID)+"\n")
         outputFile.write("# scanRange {:6.2f} mm; stepSize {:6.2f} mm; initialOffset {:6.2f} mm; start position at (x|y)=({:6.2f}|{:6.2f}) mm\n".format(scanRange,stepsize,initialOffset,StartPosition[0],StartPosition[1]))
         outputFile.write("# iStep x, iStep y, Pos x, Pos y, nMeas, Meas1 ... MeasN\n")
 
-        # add later: ideal start position is 65 | 133 mm with an initial offset of ~4 mm
-
-        xDirection = 1
+        # add later: ideal start position is 62 | 133 mm with an initial offset of ~4 mm
 
         try:
-            xyTable.move("r","x",-1*xDirection*int(nSteps/2)*stepsize*10000.)
-
             print ""
 
             pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()], maxval=(nSteps*nSteps)).start()
 
-            for i in range(nSteps):
-                for j in range(nSteps):
-                    if not j==0:
-                        xyTable.move("r","x",xDirection*stepsize*10000.)
-                    position = xyTable.getCurrentPosition()
+            for pos in scanPositions:
+                xyTable.move("a","x",scanPositions[0]*10000.)
+                xyTable.move("a","x",scanPositions[1]*10000.)
+                position = xyTable.getCurrentPosition()
 
+                voltage = []
+
+                # check for stability
+                for m in range(10):
+                    tmp1 = None
+                    tmp2 = None
+                    while tmp1 == None or tmp2==None:
+                        tmp1 = vc.readVoltage("m")
+                        time.sleep(0.2)
+                        tmp2 = vc.readVoltage("m")
+                    if (tmp1-tmp2)<(0.05*tmp1):
+                        break
+
+                # save up to 5 values
+                for m in range(5):
+                    meas = vc.readVoltage("m")
+                    if meas:
+                        voltage.append(meas)
+
+                if len(voltage) < 4:
                     voltage = []
-
-                    # check for stability
-                    for m in range(10):
-                        tmp1 = None
-                        tmp2 = None
-                        while tmp1 == None or tmp2==None:
-                            tmp1 = vc.readVoltage("m")
-                            time.sleep(0.2)
-                            tmp2 = vc.readVoltage("m")
-                        if (tmp1-tmp2)<(0.05*tmp1):
-                            break
-
-                    # save up to 5 values
                     for m in range(5):
                         meas = vc.readVoltage("m")
                         if meas:
                             voltage.append(meas)
 
-                    if len(voltage) < 4:
-                        voltage = []
-                        for m in range(5):
-                            meas = vc.readVoltage("m")
-                            if meas:
-                                voltage.append(meas)
-
-                    # write to output file
-                    outputFile.write("{:3d} {:3d} {:7.2f} {:7.2f} {:3d}".format(j,i,position[0]/10000.,position[1]/10000.,len(voltage)))
-                    for n in range(len(voltage)):
-                        outputFile.write(" {:12.4f}".format(voltage[n]))
-                    outputFile.write("\n")
-                    pbar.update(i*(nSteps) + j+1)
-
-                xyTable.move("r","x",-1*xDirection*(nSteps-1)*stepsize*10000.)
-                xyTable.move("r","y",-1*stepsize*10000.)
+                # write to output file
+                outputFile.write("{:3d} {:3d} {:7.2f} {:7.2f} {:3d}".format(j,i,position[0]/10000.,position[1]/10000.,len(voltage)))
+                for n in range(len(voltage)):
+                    outputFile.write(" {:12.4f}".format(voltage[n]))
+                outputFile.write("\n")
+                pbar.update(i*(nSteps) + j+1)
 
             pbar.finish()
             EndTime = time.time()
@@ -208,10 +250,10 @@ while(True):
             xyTable.move("a","x",0)
             xyTable.move("a","y",0)
 
-        except IndentationError:
+        except:
             print "Are you sure the xy table is well initialized?!"
 
-        outputFile.write("# END")
+        outputFile.write("# END: scan time was  "+str(EndTime)+"  seconds")
         outputFile.close()
         continue
 
