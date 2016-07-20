@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import math
+from matplotlib.patches import Ellipse
 
 filename = str(sys.argv[1])
 with open(filename,'r') as f:
@@ -53,9 +54,18 @@ ax = fig.gca()
 
 plt.xlabel('x [mm]',fontsize=18)
 plt.ylabel('y [mm]',fontsize=18)
-plt.title(str(sys.argv[2]),fontsize=18)
+plt.title(filename[19:24-len(filename)],fontsize=18)
 
-plt.imshow(grid, extent=(x.min(), x.max(), y.max(), y.min()),
-           interpolation='nearest', cmap=cm.gist_earth)
+ax.set_xlim([x.min()-5,x.max()+5])
+ax.set_ylim([y.min()-5,y.max()+30])
+
+plt.imshow(grid, extent=(x.min(),x.max(),y.min(),y.max()), interpolation='nearest', cmap=cm.gist_earth)
 plt.colorbar().set_label('voltage [mV]',fontsize=18)
+
+ellipse = Ellipse(xy=(62,133), width=70, height=140, edgecolor='r', fc='None', lw=2)
+beampipe = circle1=plt.Circle((62,133+4+(57+0.5)/2),(57+0.5)/2,color='black',fill=False,label="beam pipe",lw=2, ls="dashed")
+
+ax.add_patch(ellipse)
+ax.add_patch(beampipe)
+ax.invert_xaxis()
 plt.savefig("SensorData.png",bbox_inches="tight")
