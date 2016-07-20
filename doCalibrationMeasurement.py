@@ -200,12 +200,10 @@ while(True):
         outputFile.write("# scanRange {:6.2f} mm; stepSize {:6.2f} mm; initialOffset {:6.2f} mm; start position at (x|y)=({:6.2f}|{:6.2f}) mm\n".format(scanRange,stepsize,initialOffset,StartPosition[0],StartPosition[1]))
         outputFile.write("# iStep x, iStep y, Pos x, Pos y, nMeas, Meas1 ... MeasN\n")
 
-        # add later: ideal start position is 62 | 133 mm with an initial offset of ~4 mm
-
         try:
             print ""
 
-            pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()], maxval=(nSteps*nSteps)).start()
+            pbar = ProgressBar(widgets=[Percentage(), Bar(), ETA()], maxval=len(scanPositions)).start()
 
             for pos in scanPositions:
                 xyTable.move("a","x",scanPositions[0]*10000.)
