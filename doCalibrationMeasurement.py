@@ -16,8 +16,8 @@ def isInEllipse(x,y,x0,y0,a,b):
     else:
         return False
 
-scanningEllipse_x0 = 62.
-scanningEllipse_y0 = 133.
+scanningEllipse_x0 = 62. # this is also the default start
+scanningEllipse_y0 = 133. # this is also the default start
 scanningEllipse_a = 35.
 scanningEllipse_b = 70.
 
@@ -128,8 +128,12 @@ while(True):
         print ""
 
         if not raw_input("The sensor should be centered infront of the target. Is this true? (y/n) ") == "y":
-            print "Please adjust the sensor position quitting..."
-            continue
+            if raw_input("Do you want to go to the standard starting position? (y/n) ") == "y":
+                xyTable.move("a","x",scanningEllipse_x0*10000.)
+                xyTable.move("a","x",scanningEllipse_y0*10000.)
+            else:
+                print "Do you know what you are doing? Please think first - I will quit now..."
+                continue
 
         if not raw_input("This scan will be done in the y-minus direction. Is this ok? (y/n) ") == "y":
             print "quitting..."
