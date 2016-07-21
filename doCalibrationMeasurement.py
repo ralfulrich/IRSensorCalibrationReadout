@@ -239,9 +239,9 @@ while(True):
                             voltage.append(meas)
 
                 # write to output file
-                outputFile.write("{:6d} {:7.2f} {:7.2f} {:3d}".format(progress-1,position[0]/10000.,position[1]/10000.,len(voltage)))
+                outputFile.write("{:6d} {:6d} {:7.2f} {:7.2f} {:3d}".format(progress-1, progress-1,position[0]/10000.,position[1]/10000.,len(voltage)))
                 for n in range(len(voltage)):
-                    outputFile.write(" {:12.4f}".format(voltage[n]))
+                    outputFile.write(" {:12.2f}".format(voltage[n]))
                 outputFile.write("\n")
                 pbar.update(progress)
 

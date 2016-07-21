@@ -21,14 +21,15 @@ with open(filename,'r') as f:
         for i in data:
             values.append(float(i))
         Step=values[0]
-        xPos=values[1]
-        yPos=values[2]
-        nMeas0=int(values[3])
+        yStep=values[1]
+        xPos=values[2]
+        yPos=values[3]
+        nMeas0=int(values[4])
         Meas = 0.
         nMeas = 0
         for i in range(nMeas0):
-            if values[4+i]  < 1e5:
-                Meas +=values[4+i] 
+            if values[5+i]  < 1e5:
+                Meas +=values[5+i] 
                 nMeas += 1
         if nMeas != 0:
             Meas/= nMeas
@@ -39,6 +40,8 @@ with open(filename,'r') as f:
             VTmp.append(0)
         else:
             VTmp.append(Meas)
+
+print len(xTmp), len(yTmp), len(VTmp)
 
 nrows, ncols = int(math.sqrt(len(xTmp))), int(math.sqrt(len(xTmp)))
 
