@@ -11,7 +11,12 @@ from matplotlib import colors, ticker, cm
 
 import math
 
-filename = str(sys.argv[1])
+try:
+    filename = str(sys.argv[1])
+except IOError:
+    print "Please give a valid data file!"
+    sys.exit
+
 with open(filename,'r') as f:
 
     xTmp = []
