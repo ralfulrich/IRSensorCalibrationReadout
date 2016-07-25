@@ -258,7 +258,7 @@ while(True):
         xyTable.move("a","x",0)
         xyTable.move("a","y",0)
 
-        outputFile.write("# END: scan time was  "+str(EndTime)+"  seconds")
+        outputFile.write("# END: scan time was  "+str(EndTime-StartTime)+"  seconds")
         outputFile.close()
         continue
 
