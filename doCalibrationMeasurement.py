@@ -9,6 +9,8 @@ from connectionCheck import doConnectionCheck
 from AxisHelper import *
 from progressbar import *
 
+import smtplib
+from email.mime.text import MIMEText
 
 def isInEllipse(x,y,x0,y0,a,b):
     if (x-x0)*(x-x0)/a/a+(y-y0)*(y-y0)/b/b <= 1.:
@@ -126,8 +128,14 @@ while(True):
     elif command == "scan" or command == "s":
         os.system('clear')
         print ""
-
-        if not raw_input("The sensor should be centered infront of the target. Is this true? (y/n) ") == "y":
+        
+        sendEmail = False
+        receiver = ""
+        if raw_input("Do you want to get an email notification when the scan is done? (y/n) ") == "y":
+            sendEmail = True
+            receiver= raw_input("Please enter your email adress: ")
+        
+        if not raw_input("The sensor should be centered infront of the target before the scan starts. Is this already the case? (y/n) ") == "y":
             if raw_input("Do you want to go to the standard starting position? (y/n) ") == "y":
                 xyTable.move("a","x",int(scanningEllipse_x0*10000))
                 xyTable.move("a","y",int(scanningEllipse_y0*10000))
@@ -178,6 +186,11 @@ while(True):
             print "Are you sure the xy table is well initialized?!"
             print "quitting..."
             continue
+
+        if not raw_input("You can now cover the setup. Should I start the scan? (y/n) ") == "y":
+            print "quitting..."
+            continue
+
 
         # calulate positions where to measure
         # if automatic eliplic, else square
@@ -257,9 +270,23 @@ while(True):
         print "Will return to 0|0 now."
         xyTable.move("a","x",0)
         xyTable.move("a","y",0)
-
         outputFile.write("# END: scan time was  "+str(EndTime-StartTime)+"  seconds")
         outputFile.close()
+
+        email = "The scan of the sensor " + str(sensorID) + " was successfully completed!\n"
+        email += "The scan took " + str((EndTime-StartTime)) + " seconds.\n"
+        email += "You can now make the next scan.\n"
+        msg = MIMEText(email)
+
+        if receiver != "":
+            msg['Subject'] = 'IR sensor scan completed'
+            msg['From'] = "sebastian.baur@kit.edu"
+            msg['To'] = receiver+", sebastian.baur@kit.edu"
+
+            s = smtplib.SMTP('smtp.kit.edu',25)
+            s.sendmail("CASTORgroup@kit.edu", [receiver,"sebastian.baur@kit.edu"], msg.as_string())
+            s.quit()
+
         continue
 
 
