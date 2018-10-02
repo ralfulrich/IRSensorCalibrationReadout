@@ -7,13 +7,19 @@ def send(dev, command): # function for sending commands to the stage
     time.sleep(0.05)
     return dev.read(1024).strip()
 
-def initAxis(axis, ID, CAN):
+def initAxis(axis, ID, CAN, refmask, refmask2):
+    #    send(axis, CAN+"SMK"+str(ID)+"=1001") # limit switch mask
+    #    send(axis, CAN+"RMK"+str(ID)+"="+refmask)
+    #    send(axis, CAN+"RPL"+str(ID)+"="+refmask2)
     send(axis, CAN+"INIT"+str(ID)) # initialize the stage
     send(axis, CAN+"PVEL"+str(ID)+"=25000") # set max velocity
     send(axis, CAN+"ACC"+str(ID)+"=100000") # set accerleration
+    send(axis, CAN+"RMK"+str(ID)+"="+refmask)
+    send(axis, CAN+"RPL"+str(ID)+"="+refmask2)
+    send(axis, CAN+"SMK"+str(ID)+"=1111") # limit switch mask
 
-def doReferenceTravel(axis, ID,CAN):    
-    send(axis, CAN+"RVELS"+str(ID)+"=50000" ) # set ref velocity default = 2500
+def doReferenceTravel(axis, ID, CAN):    
+    send(axis, CAN+"RVELS"+str(ID)+"=5000" ) # set ref velocity default = 2500
     send(axis, CAN+"RVELF"+str(ID)+"=-50000" ) # set ref velocity default = -25000
     send(axis, CAN+"REF"+str(ID)+"=6") # drive to maximum -> minimum:: set minimum to zero
     while send(axis, CAN+"?ASTAT") == 'P':# check, if stage is moving or reached target positon
@@ -21,10 +27,12 @@ def doReferenceTravel(axis, ID,CAN):
 
 def doReferenceTravel2D(axisA,axisB,IDA,IDB,CANA,CANB):
     print "do reference travel"
-    send(axisA, CANA+"RVELS"+str(IDA)+"=50000" ) # set ref velocity default = 2500
+    print ("limit x: " + send(axisA, "00?SMK1") + ", ref x: " + send(axisA, "00?RMK1")+ ", polref x: " + send(axisA, "00?RPL1"))
+    print ("limit y: " + send(axisB, "01?SMK1") + ", ref y: " + send(axisB, "01?RMK1")+ ", polref y: " + send(axisA, "01?RPL1"))
+    send(axisA, CANA+"RVELS"+str(IDA)+"=2500" ) # set ref velocity default = 2500
     send(axisA, CANA+"RVELF"+str(IDA)+"=-50000" ) # set ref velocity default = -25000
     send(axisA, CANA+"REF"+str(IDA)+"=6") # drive to maximum -> minimum:: set minimum to zero
-    send(axisB, CANB+"RVELS"+str(IDB)+"=50000" ) # set ref velocity default = 2500
+    send(axisB, CANB+"RVELS"+str(IDB)+"=2500" ) # set ref velocity default = 2500
     send(axisB, CANB+"RVELF"+str(IDB)+"=-50000" ) # set ref velocity default = -25000
     send(axisB, CANB+"REF"+str(IDB)+"=6") # drive to maximum -> minimum:: set minimum to zero
     while send(axisA, CANA+"?ASTAT") == 'P' or send(axisB, CANB+"?ASTAT") == 'P':# check, if stage is moving or reached target positon

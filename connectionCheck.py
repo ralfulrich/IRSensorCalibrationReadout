@@ -38,24 +38,21 @@ def doConnectionCheck():
 			else:
 				print "        I don't know this serial number -> FIX!!!"
 			print "    Axis 1 status \'" + send(axisControl1, "?ASTAT") + "\'"
-                        print send(axisControl1, "STOP1")
-                        print send(axisControl1, "STOP2")
-                        print send(axisControl1, "RESETMB")
-                        print send(axisControl1, "ERRCLEAR")
-                        print send(axisControl1, "EFREE1")
-                        print send(axisControl1, "EFREE2")
-                        print send(axisControl1, "01STOP1")
-                        print send(axisControl1, "01STOP2")
-                        print send(axisControl1, "01RESETMB")
-                        print send(axisControl1, "01ERRCLEAR")
-                        print send(axisControl1, "01EFREE1")
-                        print send(axisControl1, "01EFREE2")
-                        print send(axisControl1, "00STOP1")
-                        print send(axisControl1, "00STOP2")
-                        print send(axisControl1, "00RESETMB")
-                        print send(axisControl1, "00ERRCLEAR")
-                        print send(axisControl1, "00EFREE1")
-                        print send(axisControl1, "00EFREE2")
+
+                        send(axisControl1, "00INIT1")
+                        send(axisControl1, "00EFREE1")
+
+                        send(axisControl1, "01INIT1")
+                        send(axisControl1, "01EFREE1")
+                        
+                        send(axisControl1, "00STOP1")
+                        send(axisControl1, "01STOP1")
+                        send(axisControl1, "RESETMB")
+                        send(axisControl1, "00RESETMB")
+                        send(axisControl1, "01RESETMB")
+                        send(axisControl1, "ERRCLEAR")
+                        send(axisControl1, "00ERRCLEAR")
+                        send(axisControl1, "01ERRCLEAR")
 		except:
 			print "Axis 1 communication not OK -> FIX!!!"
 			raise RuntimeError("Axis not working!")

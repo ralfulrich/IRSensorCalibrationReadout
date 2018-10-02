@@ -68,29 +68,35 @@ if not xAxis or not yAxis:
 	print "Could not determine, which cotrol unit to use for the x and y axis! Please ask Sebastian!"
 	sys.exit()
 
-print "status " + send(xAxis, xCAN+"?ASTAT") + " " + send(xAxis, yCAN+"?ASTAT") 
+print "status " + send(xAxis, xCAN+"?ASTAT") + " " + send(yAxis, yCAN+"?ASTAT") + str(getPosition2D(xAxis,yAxis,xID,yID,xCAN,yCAN))
 
-print send(xAxis, xCAN+"EFREE1")
-print send(yAxis, yCAN+"EFREE1")
 
-print "status " + send(xAxis, xCAN+"?ASTAT") + " " + send(xAxis, yCAN+"?ASTAT") 
+if send(xAxis, xCAN+"?ASTAT") == 'I' or send(yAxis, yCAN+"?ASTAT") == 'I':
+	initAxis(xAxis, xID, xCAN, "0010", "1111") # max stop, max dec, min dec, min stop
+	initAxis(yAxis, yID, yCAN, "0010", "1111")
 
-if send(xAxis, xCAN+"?ASTAT") == 'I' or send(xAxis, yCAN+"?ASTAT") == 'I':
-	initAxis(xAxis, xID, xCAN)
-	initAxis(yAxis, yID, yCAN)
+        print "status " + send(xAxis, xCAN+"?ASTAT") + " " + send(yAxis, yCAN+"?ASTAT") + str(getPosition2D(xAxis,yAxis,xID,yID,xCAN,yCAN))
+        
+        if True:
+                setRelative(xAxis, xID,xCAN)
+                setRelative(yAxis, yID,yCAN)
+                print "goto target0"
+                setTargetAndGo2D(xAxis,-20*mm, yAxis, 20*mm, xID, yID, xCAN,yCAN)
+                print "status " + send(xAxis, xCAN+"?ASTAT") + " " + send(yAxis, yCAN+"?ASTAT") + str(getPosition2D(xAxis,yAxis,xID,yID,xCAN,yCAN))
+
         doReferenceTravel2D(xAxis,yAxis,xID,yID,xCAN,yCAN)
 elif send(xAxis, xCAN+"?ASTAT") == 'O' or send(xAxis, yCAN+"?ASTAT") == 'O':
 	turnOn(xAxis, xID,xCAN)
 	turnOn(yAxis, yID,yCAN)
         
-print "status " + send(xAxis, xCAN+"?ASTAT") + " " + send(xAxis, yCAN+"?ASTAT") 
+print "status " + send(xAxis, xCAN+"?ASTAT") + " " + send(yAxis, yCAN+"?ASTAT") + str(getPosition2D(xAxis,yAxis,xID,yID,xCAN,yCAN))
 
 
 
 setAbsolute(xAxis,xID,xCAN)
 setAbsolute(yAxis,yID,yCAN)
 print "goto target1"
-setTargetAndGo2D(xAxis,400*mm, yAxis, 400*mm, xID, yID, xCAN,yCAN)
+setTargetAndGo2D(xAxis,300*mm, yAxis, 300*mm, xID, yID, xCAN,yCAN)
 
 setRelative(xAxis, xID,xCAN)
 setRelative(yAxis, yID,yCAN)
