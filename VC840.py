@@ -65,7 +65,7 @@ class VC840(object):
             'temperature': 'u°C',
             'error': '?'}
 
-    def __init__(self, port="/dev/ttyUSB3"):
+    def __init__(self, port="/dev/ttyUSB1"):
         """ """
         self.port = port
         self.serial = serial.Serial(port,
