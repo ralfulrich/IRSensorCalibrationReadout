@@ -5,6 +5,7 @@ import time
 import sys, os
 
 from VC840 import * # VC840 multimeter
+from DMM import * # other multimeters
 from connectionCheck import doConnectionCheck
 from AxisHelper import *
 from progressbar import *
@@ -18,10 +19,18 @@ def isInEllipse(x,y,x0,y0,a,b):
     else:
         return False
 
-scanningEllipse_x0 = 62. # this is also the default start
-scanningEllipse_y0 = 133. # this is also the default start
-scanningEllipse_a = 35.
-scanningEllipse_b = 70.
+mm = 10000.
+
+
+startX = (62.-35)*mm  # this is also the default start
+startY = 133.*mm      # this is also the default start
+
+centerX = 62.*mm  
+centerY = 133.*mm 
+scanningEllipse_x0 = 0.*mm 
+scanningEllipse_y0 = 0.*mm 
+scanningEllipse_a = 35.*mm
+scanningEllipse_b = 70.*mm
 
 ######################################################
 os.system('clear')
@@ -29,7 +38,7 @@ tableInitialized = False
 multiInitialized = False
 
 xyTable = None
-vc = None
+dmm = [] # digital multimeters
 
 while(True):
     print ""
@@ -66,9 +75,13 @@ while(True):
             except:
                 print "Initialization of xy table didn't work!"
             try:
-                print "Initializing the multimeter..."
-                vc = VC840()
-                vc._read_raw_value()
+                print "Initializing the multimeter(s)..."                
+                dmm[0] = VC840("/dev/ttyUSB5")
+                dmm[0]._read_raw_value()
+                dmm[1] = VC840("/dev/ttyUSB6")
+                dmm[1]._read_raw_value()
+                dmm[2] = DMM("/dev/ttyUSB2")
+                dmm[2].readVoltage('m')
                 multiInitialized = True
                 print "... done."
             except:
@@ -94,7 +107,7 @@ while(True):
         else:
             try:
                 pos=xyTable.getCurrentPosition()
-                print "The current position is ", pos[0]/10000., "|" ,pos[1]/10000., "mm."
+                print "The current position is ", pos[0]/mm, "|" ,pos[1]/mm, "mm."
             except:
                 print "Weird error - please try reinitializing!"
         continue
@@ -111,9 +124,9 @@ while(True):
             mode = raw_input("abolute or relative? (a/r, q to quit)")
             target = None
             if mode == "a":
-                target = float(raw_input("target in mm:"))*10000
+                target = float(raw_input("target (absolute) in mm:"))*mm
             elif mode == "r":
-                target = float(raw_input("step in mm:"))*10000
+                target = float(raw_input("step (relative) in mm:"))*mm
             elif mode == "q":
                 print "quit..."
                 break
@@ -133,12 +146,12 @@ while(True):
         receiver = ""
         if raw_input("Do you want to get an email notification when the scan is done? (y/n) ") == "y":
             sendEmail = True
-            receiver= raw_input("Please enter your email adress: ")
+            receiver= raw_input("Please enter your email address: ")
         
         if not raw_input("The sensor should be centered infront of the target before the scan starts. Is this already the case? (y/n) ") == "y":
             if raw_input("Do you want to go to the standard starting position? (y/n) ") == "y":
-                xyTable.move("a","x",int(scanningEllipse_x0*10000))
-                xyTable.move("a","y",int(scanningEllipse_y0*10000))
+                xyTable.move("a","x",int(centerX))
+                xyTable.move("a","y",int(centerY))
             else:
                 print "Do you know what you are doing? Please think first - I will quit now..."
                 continue
@@ -146,41 +159,55 @@ while(True):
         if not raw_input("This scan will be done in the y-minus direction. Is this ok? (y/n) ") == "y":
             print "quitting..."
             continue
-
+        
         print "Preparing sensor scan..."
-        sensorID = raw_input("sensor ID (e.g. 'IR766'): ")
-        mode = raw_input("automatic or manual setup of the scan parameters? (a/m): ")
 
-        scanRange= 0.
-        stepsize = 0.
-        initialOffset= 0.
+        sensorIDlist = []
+        sensorXlist = []
+        
+        while True:
+            sensorIDs = raw_input("sensor ID(s) (e.g. 'IR766,IRxxx,...'): ")
+            sensorXs = raw_input("sensor x-position(s) in mm [30,32,34]: ") or "30,32,34" 
+
+            sensorIDlist = sensorIDs.split(',')
+            sensorXlist = sensorXs.split(',')
+
+            if (len(sensorIDs) == len(sensorXlist)):
+                break;
+
+            print ("your input does not fit! ID-list: " + str(sensorIDlist) + " and X-list: " + str(sensorXlist))
+            print ("try again")
+            
+        mode = raw_input("automatic or manual setup of the scan parameters? (a/m): ")        
+        
+        scanRangeX= 0.*mm
+        scanRangeY= 0.*mm
+        stepsize = 0.*mm
+        initialOffset= 0.*mm
         xDirection = 1
-
+        
         if mode == "a":
-            scanRange= 70.
-            stepsize = 1.
-            initialOffset = 4.
-
+            scanRangeX= 70.*mm
+            scanRangeY= 70.*mm
+            stepsize = 1.*mm
+            initialOffset = 4.*mm
+            
         else:
-            scanRange= float(raw_input("total scanning range in mm: "))
-            stepsize = float(raw_input("scanning stepsize in mm: "))
-            initialOffset = float(raw_input("initial minimal distance to the beampipe in mm: "))
+            scanRangeX= float(raw_input("total scanning range in mm: ")) * mm
+            scanRangeY= scanRangeX
+            stepsize = float(raw_input("scanning stepsize in mm: ")) * mm
+            initialOffset = float(raw_input("initial minimal distance to the beampipe in mm: ")) * mm
+            
+        nStepsX = int(scanRangeX/stepsize) + 1
+        nStepsY = int(scanRangeY/stepsize) + 1
+        startX = centerX - scanRangeX / 2
 
-        nSteps = int(scanRange/stepsize)+1
-
-        filename = "../data/sensorScan_"+str(sensorID)+"_scanRange"+str(scanRange)+"_stepSize"+str(stepsize)+"_initialOffset"+str(initialOffset)
-        version = 1
-        print "Saving measurement to ",filename+"_"+str(version)+".dat"
-        while os.path.exists(filename+"_"+str(version)+".dat"):
-            version += 1
-            print "File already exists! Using", filename+"_"+str(version)+".dat", "instead."
-
-        centralPosition=[0,0]
 
         print "Moving to start position..."
         try:
-            centralPosition = xyTable.getCurrentPosition()
-            xyTable.move("r","x",-1*xDirection*int(nSteps/2)*stepsize*10000)
+            #centralPosition = xyTable.getCurrentPosition()
+            xyTable.move("a", "x", startX)
+            xyTable.move("a", "y", startY)
             startPosition = xyTable.getCurrentPosition()
         except:
             print "Are you sure the xy table is well initialized?!"
@@ -191,27 +218,47 @@ while(True):
             print "quitting..."
             continue
 
+        # create output files
+        outputFileList = []
+        for iSensor in range(len(sensorIDlist)):
+            sensorID = sensorIDlist[iSensor]
+            sensorX = float(sensorXlist[iSensor])
+            while True:
+                version = 1
+                filename = "../data/sensorScan_"+str(sensorID)+"_scanRange"+str(scanRangeY)+"_stepSize"+str(stepsize)+"_initialOffset"+str(initialOffset)+"_"+str(version)+".dat"
+                if os.path.exists(filename):
+                    version += 1
+                    #  print "File already exists! Using", filename+"_"+str(version)+".dat", "instead."
+                    continue
+                print ("Saving sensor " + sensorID + " measurement to file " + filename)
+
+                outputFile = open(filename, 'w' ,1)
+                outputFile.write("# Sensor scan measurement of Sensor "+str(sensorID)+"\n")
+                outputFile.write("# scanRangeX {:6.2f} mm; scanRangeY {:6.2f} mm; stepSize {:6.2f} mm; initialOffset {:6.2f} mm; sensorX {:6.2f} mm; start position at (x|y)=({:6.2f}|{:6.2f}) mm\n".format(scanRangeX/mm,scanRangeY/mm,stepsize/mm,initialOffset/mm,sensorX,startPosition[0]/mm,startPosition[1]/mm))
+                outputFile.write("# iStep, Pos x, Pos y, nMeas, Meas1 ... MeasN\n")
+
+                outputFileList.append(outputFile)
+                break
+                
 
         # calulate positions where to measure
         # if automatic eliplic, else square
         # i: y, j:x
-
+        
         scanPositions = []
-        for i in range(nSteps):
-            for j in range(nSteps):
+        for i in range(nStepsX):
+            for j in range(nStepsY):
+                posX = startPosition[0] + j*stepsize
+                posY = startPosition[1] - i*stepsize
                 if mode=="a":
-                    if isInEllipse(startPosition[0]/10000+j*stepsize,startPosition[1]/10000-i*stepsize,scanningEllipse_x0,scanningEllipse_y0,scanningEllipse_a,scanningEllipse_b):
-                        scanPositions.append([startPosition[0]+j*stepsize*10000,startPosition[1]-i*stepsize*10000])
+                    if (isInEllipse(posX,posY,centerX,centerY,scanningEllipse_a,scanningEllipse_b)):
+                        scanPositions.append([posX, posY])
                 else:
-                    scanPositions.append([startPosition[0]+j*stepsize*10000,startPosition[1]-i*stepsize*10000])       
+                    scanPositions.append([posX, posY])
 
         # start scan
-        print "Will scan", len(scanPositions), "positions with", stepsize, "mm spacing in", ("automatic" if mode=="a" else "manual square"), "mode:"
+        print "Will scan", len(scanPositions), "positions with", stepsize/mm, "mm spacing in", ("automatic" if mode=="a" else "manual square"), "mode:"
         StartTime = time.time()
-        outputFile = open(filename+"_"+str(version)+".dat",'w',1)
-        outputFile.write("# Sensor scan measurement of Sensor "+str(sensorID)+"\n")
-        outputFile.write("# scanRange {:6.2f} mm; stepSize {:6.2f} mm; initialOffset {:6.2f} mm; start position at (x|y)=({:6.2f}|{:6.2f}) mm\n".format(scanRange,stepsize,initialOffset,startPosition[0]/10000,startPosition[1]/10000))
-        outputFile.write("# iStep, Pos x, Pos y, nMeas, Meas1 ... MeasN\n")
 
         try:
             print ""
@@ -225,37 +272,17 @@ while(True):
                 xyTable.move("a","y",pos[1])
                 position = xyTable.getCurrentPosition()
 
-                voltage = []
-
-                # check for stability
-                for m in range(10):
-                    tmp1 = None
-                    tmp2 = None
-                    while tmp1 == None or tmp2==None:
-                        tmp1 = vc.readVoltage("m")
-                        time.sleep(0.2)
-                        tmp2 = vc.readVoltage("m")
-                    if (tmp1-tmp2)<(0.05*tmp1):
-                        break
-
-                # save up to 5 values
-                for m in range(5):
-                    meas = vc.readVoltage("m")
-                    if meas:
-                        voltage.append(meas)
-
-                if len(voltage) < 4:
-                    voltage = []
-                    for m in range(5):
-                        meas = vc.readVoltage("m")
-                        if meas:
-                            voltage.append(meas)
-
                 # write to output file
-                outputFile.write("{:6d} {:6d} {:7.2f} {:7.2f} {:3d}".format(progress-1, progress-1,position[0]/10000.,position[1]/10000.,len(voltage)))
-                for n in range(len(voltage)):
-                    outputFile.write(" {:12.2f}".format(voltage[n]))
-                outputFile.write("\n")
+                for iFile in range(len(outputFileList)):
+                    
+                    outputFile = outputFileList[iFile]
+                    voltage = dmm[iFile].readStable(5) # 5 measurements
+                    
+                    outputFile.write("{:6d} {:6d} {:7.2f} {:7.2f} {:3d}".format(progress-1, progress-1,position[0]/mm,position[1]/mm,len(voltage)))
+                    for n in range(len(voltage)):
+                        outputFile.write(" {:12.2f}".format(voltage[n]))
+                    outputFile.write("\n")
+                    
                 pbar.update(progress)
 
             pbar.finish()
@@ -270,8 +297,10 @@ while(True):
         print "Will return to 0|0 now."
         xyTable.move("a","x",0)
         xyTable.move("a","y",0)
-        outputFile.write("# END: scan time was  "+str(EndTime-StartTime)+"  seconds")
-        outputFile.close()
+
+        for outputFile in outputFileList:
+            outputFile.write("# END: scan time was  "+str(EndTime-StartTime)+"  seconds")
+            outputFile.close()
 
         email = "The scan of the sensor " + str(sensorID) + " was successfully completed!\n"
         email += "The scan took " + str((EndTime-StartTime)) + " seconds.\n"

@@ -67,6 +67,7 @@ class VC840(object):
 
     def __init__(self, port="/dev/ttyUSB1"):
         """ """
+        print ("VC840, init with port : " + port)
         self.port = port
         self.serial = serial.Serial(port,
                                     baudrate=2400,
@@ -227,6 +228,8 @@ class VC840(object):
             # should happen only for Ohm measurements when 'L' is displayed
             self.value = 'Inf'
 
+
+            
     def readVoltage(self,prefix):
         try:
             self._read_raw_value()
@@ -251,5 +254,32 @@ class VC840(object):
 	else:
 	    return self.value
 
-    #time.sleep(0.001)
+        #time.sleep(0.001)
 
+
+    def readStable(self, nMeas):
+
+        voltage = []
+        
+        # check for stability
+        for m in range(20):
+            tmp1 = None
+            tmp2 = None
+            while tmp1 == None or tmp2==None:
+                tmp1 = self.readVoltage("m")
+                time.sleep(0.2)
+                tmp2 = self.readVoltage("m")
+            if (tmp1-tmp2)<(0.025*tmp1):
+                break
+
+        # save nMeas values
+        for m in range(nMeas):
+            while True:
+                meas = self.readVoltage("m")
+                if meas:
+                    voltage.append(meas)
+                    break
+
+        return voltage
+
+    

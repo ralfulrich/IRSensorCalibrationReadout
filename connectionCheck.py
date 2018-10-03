@@ -116,7 +116,9 @@ def doConnectionCheck():
 	print ""
 	if ready: print "All checks are OK! You are ready to Go!!!"
 	if not ready: print "Not all checks are OK! Please fix everything and redo this test!!!"
-
+        print ""
+        return ready
+        
 if __name__ == "__main__":
 	doConnectionCheck()
 	sys.exit
