@@ -6,6 +6,7 @@ import sys, os
 
 from VC840 import * # VC840 multimeter
 from DMM import * # other multimeters
+from Keithley2750 import *
 from connectionCheck import doConnectionCheck
 from AxisHelper import *
 from progressbar import *
@@ -76,12 +77,16 @@ while(True):
                 print "Initialization of xy table didn't work!"
             try:
                 print "Initializing the multimeter(s)..."                
-                dmm[0] = VC840("/dev/ttyUSB5")
-                dmm[0]._read_raw_value()
-                dmm[1] = VC840("/dev/ttyUSB6")
-                dmm[1]._read_raw_value()
-                dmm[2] = DMM("/dev/ttyUSB2")
-                dmm[2].readVoltage('m')
+                dmm.append(Keithley2750("/dev/ttyUSB1"))
+                channel.append("@101")
+                channel.append("@102")
+                channel.append("@103")
+                # dmm[0] = VC840("/dev/ttyUSB0")
+                # dmm[0]._read_raw_value()
+                # dmm[1] = VC840("/dev/ttyUSB6")
+                # dmm[1]._read_raw_value()
+                # dmm[2] = DMM("/dev/ttyUSB2")
+                # dmm[2].readVoltage('m')
                 multiInitialized = True
                 print "... done."
             except:
@@ -276,7 +281,8 @@ while(True):
                 for iFile in range(len(outputFileList)):
                     
                     outputFile = outputFileList[iFile]
-                    voltage = dmm[iFile].readStable(5) # 5 measurements
+                    dmm[0].connectChannel(channel[iFile])
+                    voltage = dmm[0].readStable(5) # 5 measurements
                     
                     outputFile.write("{:6d} {:6d} {:7.2f} {:7.2f} {:3d}".format(progress-1, progress-1,position[0]/mm,position[1]/mm,len(voltage)))
                     for n in range(len(voltage)):

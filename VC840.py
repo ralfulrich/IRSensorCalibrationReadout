@@ -56,6 +56,8 @@ class seven_element_digit(object):
         return this_digit
 
 
+
+    
 class VC840(object):
 
     UNIT = {'voltage': 'V',
@@ -68,17 +70,41 @@ class VC840(object):
     def __init__(self, port="/dev/ttyUSB1"):
         """ """
         print ("VC840, init with port : " + port)
-        self.port = port
-        self.serial = serial.Serial(port,
-                                    baudrate=2400,
-                                    bytesize=8,
-                                    parity="N",
-                                    stopbits=1,
-                                    timeout=1.5,
-                                    xonxoff=0,
-                                    rtscts=0,
-                                    dsrdtr=None)
+        if ("?" in port):
+            iPort = 0
+            while True:
+                self.port = port.replace("?", str(iPort))
+                try:
+                    self.serial = serial.Serial(self.port,
+                                                baudrate=2400,
+                                                bytesize=8,
+                                                parity="N",
+                                                stopbits=1,
+                                                timeout=1.5,
+                                                xonxoff=0,
+                                                rtscts=0,
+                                                dsrdtr=None)
+                    break
+                except:
+                    iPort += 1
+                    
+                if (iPort==9):
+                    print ("-> This VC840 is NOT WORKING")
+                    raise RuntimeError("This VC840 is NOT WORKING")
 
+                    
+        else:
+            self.port = port
+            self.serial = serial.Serial(self.port,
+                                        baudrate=2400,
+                                        bytesize=8,
+                                        parity="N",
+                                        stopbits=1,
+                                        timeout=1.5,
+                                        xonxoff=0,
+                                        rtscts=0,
+                                        dsrdtr=None)
+        
         self.serial.setRTS(0)
         self.serial.setDTR(0)
         self.digit = [[0] * 7] * 4
@@ -90,6 +116,11 @@ class VC840(object):
         self.DC = None
         self.AC = None
 
+
+    def getPort(self):
+        return self.port
+
+    
     def _read_raw_value(self):
         """ returns read bytes as list of integers """
         for n in range(5):  # 5 attempts to read

@@ -9,7 +9,7 @@ class DMM(object):
         """ """
         print ("DMM, init with port : " + port)
         self.port = port
-        self.serial = serial.Serial('/dev/ttyUSB0', baudrate=19200, timeout=0.)
+        self.serial = serial.Serial(self.port, baudrate=19200, timeout=0.)
 
 
     def send_receive(self,command):
