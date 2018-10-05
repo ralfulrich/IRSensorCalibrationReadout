@@ -10,7 +10,7 @@ from AxisHelper import *
 print ""
 print "Welcome to a first pattern movement test!"
 print "Make sure, that you have run the connection test before!"
-while(True):
+while(False):
 	if raw_input("Did you do so? (y/n)") == "n":
 		print "Please do this first!"
 		sys.exit()
@@ -41,7 +41,10 @@ xyTable.getRailStatus("y")
 xyTable.setAbsolute("x")
 xyTable.setAbsolute("y")
 print "goto target1"
-xyTable.setTargetAndGo2D(300*mm, 300*mm)
+xyTable.setTargetAndGo2D(10*mm, 10*mm)
+
+print "goto target2"
+xyTable.setTargetAndGo2D(100*mm, 100*mm)
 
 
 stepLength = 60000
@@ -57,9 +60,9 @@ for i in range(nSteps):
 	for j in range(nSteps):
 		position = xyTable.getCurrentPosition()
 		# print i,j,position[0]/10000., position[1]/10000.
-		xyTable.moveStep("r", "x", stepLength)
-	xyTable.moveStep("r", "x", -nSteps*stepLength)
-	xyTable.moveStep("r", "y", stepLength)
+		xyTable.move("r", "x", stepLength)
+	xyTable.move("r", "x", -nSteps*stepLength)
+	xyTable.move("r", "y", stepLength)
 EndTime = time.time()
 print "... done."
 print "The scan took", (EndTime-StartTime), "seconds."
@@ -67,7 +70,7 @@ print "The scan took", (EndTime-StartTime), "seconds."
 #print "Will return to 0|0 now."
 #setTargetAndGo2D(xAxis,0,yAxis,0,xID,yID,xCAN,yCAN)
 
-turnOff()
+# xyTable.turnOff()
 
 print ""
 print ""

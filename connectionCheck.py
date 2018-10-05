@@ -23,6 +23,10 @@ from Keithley2750 import *
 #             char = mult.read()
 #         print (received)
 #         return received
+def send(dev, command): # function for sending commands to the stage
+        dev.write(command + "\r")
+        time.sleep(0.05)
+        return dev.read(1024).strip()
 
 
 def doConnectionCheck():
@@ -40,7 +44,7 @@ def doConnectionCheck():
 	print "Testing x/y axis connections:"
         isSPOCK = False
 	try:
-		axisControl1 = serial.Serial("/dev/ttyACM0")
+		axisControl1 = serial.Serial("/dev/ttyACM1")
 		axisControl1.baudrate = 9600
 		axisControl1.timeout = 0.2
 		print "    Axis 1 connection OK"
@@ -123,7 +127,7 @@ def doConnectionCheck():
 	print "Checking communication with multimeter:"
 	try:
                 #                port="/dev/ttyUSB?" # scan for right device
-                port="/dev/ttyUSB0" 
+                port="/dev/ttyUSB7" 
 		vc = VC840(port=port)
                 print "    connecting to device at " + vc.getPort()
 		print "    serial port access OK"
@@ -142,7 +146,9 @@ def doConnectionCheck():
                 
         if (isSPOCK):
                 try:
-                        port="/dev/ttyUSB1" # use ? to scan for right device
+                        print ("\n\n\n\n")
+                        print ("try Keitley")
+                        port="/dev/ttyUSB8" # use ? to scan for right device
 		        k2750 = Keithley2750(port=port)
                         print "    connecting to device at " + k2750.getPort()
 		        print "    serial port access OK"

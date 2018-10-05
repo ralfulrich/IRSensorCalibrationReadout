@@ -52,8 +52,9 @@ class XYTable:
         self.xCAN = "00"
         self.yCAN = "00"
         print "Initializing the x/y axis..."
-        try:
-            port="/dev/ttyACM0"
+        #        try:
+        if True:
+            port="/dev/ttyACM1"
             print ".connecting to " + port
             axisControl1 = serial.Serial(port)
             axisControl1.baudrate = 9600
@@ -61,7 +62,7 @@ class XYTable:
 
             self.isSPOCK = True
 
-            if not isSPOCK:
+            if not self.isSPOCK:
             
                 print ".consider two indipendently connected controllers"
                 axisControl2 = serial.Serial("/dev/ttyACM1")
@@ -114,18 +115,18 @@ class XYTable:
             self.setupAxis("y", "0010", "1111")
                 
             print ".status x: "
-            self.getRailStatus(self, self.xAxis, self.xID, self.xCAN)
+            self.getRailStatus("x")
             print ".status y: " 
-            self.getRailStatus(self, self.yAxis, self.yID, self.yCAN)
+            self.getRailStatus("y")
 
             # check if everything is OK
             if self.send(self.xAxis, self.xCAN+"?ASTAT") != 'R' or self.send(self.yAxis, self.yCAN+"?ASTAT") != 'R':
                 print "!Not all axes are in READY status. Fix!"
                 sys.exit(1)
             
-        except:
-   	    print "Axis communication not OK -> FIX!!!"
-	    raise RuntimeError("Axis not working!")
+            #except:
+   	    #print "Axis communication not OK -> FIX!!!"
+	    # raise RuntimeError("Axis not working!")
 
         print ".initialized"
 
@@ -142,17 +143,26 @@ class XYTable:
     def doReference(self):
         print ("Reference scan of XY table...")
         print (".limit x: " + self.send(self.xAxis, self.xCAN+"?SMK1") + ", refmask x: " + self.send(self.xAxis, self.xCAN+"?RMK1")+ ", polref x: " + self.send(self.xAxis, self.xCAN+"?RPL1"))
-        self.send(self.xAxis, self.xCAN+"RVELS1=2500" )         # set ref velocity default = 2500
-        self.send(self.xAxis, self.xCAN+"RVELF1=-50000" )       # set ref velocity default = -25000
-        self.send(self.xAxis, self.xCAN+"REF1=1")               # drive to maximum -> minimum:: set minimum to zero.  WHY NOT MODE 6???
+        statX = self.send(self.xAxis, self.xCAN+"?REFST1")
+        if (statX == "1"):
+            print (".already calibrated!")
+        else:
+            self.send(self.xAxis, self.xCAN+"RVELS1=2500" )         # set ref velocity default = 2500
+            self.send(self.xAxis, self.xCAN+"RVELF1=-50000" )       # set ref velocity default = -25000
+            self.send(self.xAxis, self.xCAN+"REF1=1")               # drive to maximum -> minimum:: set minimum to zero.  WHY NOT MODE 6???
 
         print (".limit y: " + self.send(self.yAxis, self.yCAN+"?SMK1") + ", refmask y: " + self.send(self.yAxis, self.yCAN+"?RMK1")+ ", polref y: " + self.send(self.yAxis, self.yCAN+"?RPL1"))
-        self.send(self.yAxis, self.yCAN+"RVELS1=2500" ) # set ref velocity default = 2500
-        self.send(self.yAxis, self.yCAN+"RVELF1=-50000" ) # set ref velocity default = -25000
-        self.send(self.yAxis, self.yCAN+"REF1=1") # drive to maximum -> minimum:: set minimum to zero                  WHY NOT MODE 6???
+        statY = self.send(self.yAxis, self.yCAN+"?REFST1")
+        if (statY == "1"):
+            print (".already calibrated!")
+        else:
+            self.send(self.yAxis, self.yCAN+"RVELS1=2500" ) # set ref velocity default = 2500
+            self.send(self.yAxis, self.yCAN+"RVELF1=-50000" ) # set ref velocity default = -25000
+            self.send(self.yAxis, self.yCAN+"REF1=1") # drive to maximum -> minimum:: set minimum to zero                  WHY NOT MODE 6???
         
         # check, if stage is moving or reached target positon
         self.waitWhile('P')
+        self.setOrigin()
         return True
 
     
@@ -198,6 +208,11 @@ class XYTable:
         return int(self.send(self.xAxis, self.xCAN+"?CNT1")), int(self.send(self.yAxis, self.yCAN+"?CNT1"))
 
 
+    def setOrigin(self):
+        self.send(self.xAxis, self.xCAN+"CNT1=0")
+        self.send(self.yAxis, self.yCAN+"CNT1=0")
+
+    
     def setTargetAndGo(self, axis, target):
         if (axis=="x"):
             self.send(self.xAxis, self.xCAN+"PSET"+str(self.xID)+"="+str(target)) # set target position
@@ -266,4 +281,4 @@ class XYTable:
         dev.write(command + "\r")
         time.sleep(0.05)
         return dev.read(1024).strip()
-
+ 
