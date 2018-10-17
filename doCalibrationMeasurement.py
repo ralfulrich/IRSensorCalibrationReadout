@@ -50,21 +50,25 @@ channel = []
 vc840 = None
 u1272a = None
 
+readVoltage = None
+
 while(True):
     print ""
     print ""
     print "--------------------------------------------------------------------------------------------"
     print "Please tell me what you want do do:"
     print "--------------------------------------------------------------------------------------------"
-    print "test: check if the device communication is ready (recommended at start)"
-    print "init: initialze all devices (mandatory at programm start or if axis are off)"
-    print "ref: do reference scan of both axis (recommended if the axis controls have been turned off)"
-    print "pos: print current position of the xy table"
-    print "move: manual movements of the axis (used to set start position)"
-    print "pre-scan: 1D move and print readings"
-    print "scan: scan of the sensor (details can still be specified)"
-    print "off: turn off both axis (usefull if you make a break)"
-    print "quit: quit this program"
+    print "test/t: check if the device communication is ready (recommended at start)"
+    print "init/i: initialze all devices (mandatory at programm start or if axis are off)"
+    print "ref/r: do reference scan of both axis (recommended if the axis controls have been turned off)"
+    print "pos/p: print current position of the xy table"
+    print "move/m: manual movements of the axis (used to set start position)"
+    print "pre-scan/P: 1D move and print readings"
+    print "scan/s: scan of the sensor (details can still be specified)"
+    print "off/o: turn off both axis (usefull if you make a break)"
+    print "keithley/k: use keithley to measure voltage"
+    print "agilent/a: use Agilent to measure voltage"
+    print "quit/q: quit this program"
     print "--------------------------------------------------------------------------------------------"
     print ""
 
@@ -103,12 +107,22 @@ while(True):
 
                 #u1272a = DMM(port="/dev/ttyUSB10")
                 u1272a = DMM(port="/dev/ttyUSB5")
+
+                readVoltage = u1272a
+                
                 multiInitialized = True
                 print "... done."
             except:
                 print ".Initialization of the multimeter didn't work!"
         continue
 
+
+    elif command == "keithley" or command == "k":
+        readVoltage = keithley2750
+
+    elif command == "agilent" or command == "a":
+        readVoltage = u1272a
+    
     elif command  == "ref" or command == "r":
         #os.system('clear')
         print("-----------------------------------------------------------\n")
@@ -185,11 +199,11 @@ while(True):
                 target = start + (end-start)/(nstep-1) * istep 
                 xyTable.move(mode,axis,target)
                 dmm[0].connectChannel(channel[0])
-                v1 = dmm[0].readStable(nMeas=1, accuracy=0.025) 
+                v1 = readVoltage.readStable(nMeas=1, accuracy=0.025) 
                 dmm[0].connectChannel(channel[1])
-                v2 = dmm[0].readStable(nMeas=1, accuracy=0.025) 
+                v2 = readVoltage.readStable(nMeas=1, accuracy=0.025) 
                 dmm[0].connectChannel(channel[2])
-                v3 = dmm[0].readStable(nMeas=1, accuracy=0.025) 
+                v3 = readVoltage.readStable(nMeas=1, accuracy=0.025) 
                 print (" pos: %5d mm, v1=%6.2f mV, v2=%6.2f mV, v3=%6.2f mV" % (target/mm, v1[0], v2[0], v3[0]))
                 ofile.write( "%5d %5d %6.2f %6.2f %6.2f \n" % (istep, target/mm, v1[0], v2[0], v3[0]))
                 ofile.flush()
@@ -294,8 +308,7 @@ while(True):
                 
             dmm[0].connectChannel("@104")
             while (Vin == None):
-                #Vin = dmm[0].readStable(nMeas=1, accuracy=0.05)[0]
-                Vin = u1272a.readStable(nMeas=1, accuracy=0.05)[0]
+                Vin = readVoltage.readStable(nMeas=1, accuracy=0.05)[0]
                 print (".Vin=" + str(Vin) + " mV")
 
             Temp = u1272a.readTemperature()
@@ -399,8 +412,7 @@ while(True):
                     doMeasurement = True
                     if doMeasurement and (iSensor in pos[2]):
                         dmm[0].connectChannel(channel[iSensor])
-                        #voltage = dmm[0].readStable(nMeas=1, accuracy=0.025) # 5 measurements
-                        voltage = u1272a.readStable(nMeas=1, accuracy=0.025) # 5 measurements
+                        voltage = readVoltage.readStable(nMeas=1, accuracy=0.025) # 5 measurements ? ... 1
 
                         outputFile.write("{:6d} {:6d} {:7.2f} {:7.2f} {:3d}".format(progress-1, progress-1,position[0]/mm,position[1]/mm,len(voltage)))
                         for n in range(len(voltage)):
