@@ -8,15 +8,26 @@ class DMM(object):
     def __init__(self, port="/dev/ttyUSB10"):
         """ """
         print ("DMM, init with port : " + port)
-        self.port = port
-        self.serial = serial.Serial(self.port, baudrate=19200, timeout=.1)
-        time.sleep(1)
-        self.send_receive("RST")
-        print('meter,  identifying meter: ' + self.send_receive("?IDN?"))
-        print('meter,  Battery: ' + self.send_receive("SYST:BATT?"))
-        print('meter,  Config: ' + self.send_receive("CONF?"))
+        iPort = 0
+        while True:
+            self.port = port
+            if ("?" in port):
+                self.port = port.replace("?", str(iPort))
+            try:
+                self.serial = serial.Serial(self.port, baudrate=19200, timeout=.1)
+                time.sleep(1)
+                self.send_receive("RST")
+                print('meter,  identifying meter: ' + self.send_receive("?IDN?"))
+                print('meter,  Battery: ' + self.send_receive("SYST:BATT?"))
+                print('meter,  Config: ' + self.send_receive("CONF?"))
+                print ("DMM, init with port : " + self.port)
+                break
+            except:
+                iPort += 1
+                if (("?" not in port) or iPort == 20):
+                    raise
 
-        
+            
     def send_receive(self,command, length=200):
         self.send(command)
         time.sleep(0.25)

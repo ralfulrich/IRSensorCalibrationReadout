@@ -87,6 +87,19 @@ class VC840(object):
                                                 xonxoff=0,
                                                 rtscts=0,
                                                 dsrdtr=None)
+                    self.serial.setRTS(0)
+                    self.serial.setDTR(0)
+                    self.digit = [[0] * 7] * 4
+                    self.mode = None
+                    self.mrange = None
+                    self.data = None
+                    self.rs232 = None
+                    self.auto = None
+                    self.DC = None
+                    self.AC = None
+                    self._read_raw_value()
+                    print ("VC840, init with port : " + self.port)
+
                     break
                 except:
                     iPort += 1
@@ -108,17 +121,17 @@ class VC840(object):
                                         rtscts=0,
                                         dsrdtr=None)
         
-        self.serial.setRTS(0)
-        self.serial.setDTR(0)
-        self.digit = [[0] * 7] * 4
-        self.mode = None
-        self.mrange = None
-        self.data = None
-        self.rs232 = None
-        self.auto = None
-        self.DC = None
-        self.AC = None
-
+            self.serial.setRTS(0)
+            self.serial.setDTR(0)
+            self.digit = [[0] * 7] * 4
+            self.mode = None
+            self.mrange = None
+            self.data = None
+            self.rs232 = None
+            self.auto = None
+            self.DC = None
+            self.AC = None
+            self._read_raw_value()
 
     def getPort(self):
         return self.port

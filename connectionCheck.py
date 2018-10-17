@@ -136,7 +136,7 @@ def doConnectionCheck():
 	print ""	
 	print "Checking communication with multimeter U1272A:"
 
-        dmm = DMM(port="/dev/ttyUSB5")
+        dmm = DMM(port="/dev/ttyUSB?")
         print (str(dmm.readVoltage("m")))
         print (str(dmm.readTemperature()))
         print (str(dmm.readStable(nMeas=5, accuracy=0.025)))
@@ -147,7 +147,7 @@ def doConnectionCheck():
 	print "Checking communication with multimeter V840:"
         #                port="/dev/ttyUSB?" # scan for right device
         #port="/dev/ttyUSB0"  
-        port="/dev/ttyUSB6"  
+        port="/dev/ttyUSB?"  
         #port="/dev/ttyUSB5" # ...  
 	vc = VC840(port=port)
         print "    connecting to device at " + vc.getPort()
@@ -166,7 +166,7 @@ def doConnectionCheck():
         if (isSPOCK):
                 print ("\n\n\n\n")
                 print ("try Keitley")
-                port="/dev/ttyUSB7" # use ? to scan for right device
+                port="/dev/ttyUSB?" # use ? to scan for right device
                 #port="/dev/ttyUSB6" # use ? to scan for right device
                 #port="/dev/ttyUSB1" # use ? to scan for right device
 		k2750 = Keithley2750(port=port, verbose=True)
@@ -193,7 +193,7 @@ def doConnectionCheck():
                 v=k2750.readStable(2)
                 print ("result: " + str(v))
                 
-                doStress = True
+                doStress = False
                 if doStress:
                         for i in range(50):
                                 for j in range(4):

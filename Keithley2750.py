@@ -5,7 +5,7 @@ import time
 
 class Keithley2750(object):
 
-    def __init__(self, port="/dev/ttyUSB1",verbose=False,isDummy=False):
+    def __init__(self, port="/dev/ttyUSB?",verbose=False,isDummy=False):
         """ """
         self.isDummy = isDummy
         if (self.isDummy):
@@ -14,24 +14,42 @@ class Keithley2750(object):
         print ("Keithley2750, init with port : " + port)
         if (self.verbose):
             print ("->make sure that your 27xx is configured for RS232 control!")
-        self.port = port
-        self.serial = serial.Serial(self.port, baudrate=19200, xonxoff=True, timeout=.1)
-        time.sleep(1)
+        iPort = 0
+        while True:
+            self.port = port
+            if ("?" in port):
+                self.port = port.replace("?", str(iPort))
+            try:
 
-        self.send("SYST:PRES")
-        self.send("*RST")
-        self.send("*CLS")
-        #self.send("INIT:CONT")
-        self.send("ABOR")
-        self.send("*OPC")
-        self.send("INIT:CONT OFF")
-        self.send("TRIG:COUN 1")
-        self.send("SAMP:COUN 1")
-        self.send("*OPC")
-        self.IDN = self.send_receive("*IDN?")
-        self.send("*OPC")
-        print("IDN=" + self.IDN)
-        self.previousChan = "unknown"
+                print (self.port)
+                self.serial = serial.Serial(self.port, baudrate=19200, xonxoff=True, timeout=1)
+                time.sleep(.5)
+                
+                self.send("SYST:PRES")
+                self.send("*RST")
+                self.send("*CLS")
+                #self.send("INIT:CONT")
+                self.send("ABOR")
+                self.send("*OPC")
+                self.send("INIT:CONT OFF")
+                self.send("TRIG:COUN 1")
+                self.send("SAMP:COUN 1")
+                self.send("*OPC")
+                self.IDN = self.send_receive("*IDN?")
+                self.send("*OPC")
+                print("IDN=\'" + self.IDN + "\'")
+                if ("2750" not in self.IDN):
+                    iPort += 1
+                    continue
+                self.previousChan = "unknown"
+                print ("Keithley, init with port : " + self.port)
+                break
+            except:
+                iPort += 1
+                if (("?" not in port) or iPort == 20):
+                    raise
+
+                
         
     def waitMilli(self, ms) :
         time.sleep(ms/1000.)
@@ -75,7 +93,7 @@ class Keithley2750(object):
         char = ""
         while char != '\r':
             try:
-                #self.waitMilli(100)
+                self.waitMilli(10)
                 char = self.serial.read()
             except serial.SerialException as e:
                 print ("Serious error in Keithley::read. Return 0.")
