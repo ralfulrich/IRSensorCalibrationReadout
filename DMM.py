@@ -32,7 +32,11 @@ class DMM(object):
                 if (("?" not in port) or iPort == 20):
                     raise
 
-            
+                
+    def getPort(self):
+        return self.port
+
+    
     def send_receive(self,command, length=200):
         self.send(command)
         time.sleep(0.25)

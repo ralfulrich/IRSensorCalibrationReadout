@@ -95,20 +95,27 @@ while(True):
                 print ".Initialization of xy table didn't work!"
             try:
                 print ".Initializing the multimeter(s)..."
-                k2750 =  Keithley2750(port="/dev/ttyUSB7", isDummy=dummyRun)
+                k2750 =  Keithley2750(port="/dev/ttyUSB?", isDummy=dummyRun)
+                k2750_port = k2750.getPort()
                 #k2750 =  Keithley2750(port="/dev/ttyUSB6", isDummy=dummyRun)
                 #k2750 =  Keithley2750(port="/dev/ttyUSB1", isDummy=dummyRun)
-                dmm.append(k2750)
+                #dmm.append(k2750)
                 channel.append("@101")
                 channel.append("@102")
                 channel.append("@103")
                 #vc840 = VC840("/dev/ttyUSB5", isDummy=dummyRun)                
-                vc840 = VC840("/dev/ttyUSB6", isDummy=dummyRun)                
+                vc840 = VC840(port="/dev/ttyUSB?", isDummy=dummyRun)
+                vc840_port = vc840.getPort()
                 #vc840 = VC840("/dev/ttyUSB0", isDummy=dummyRun)
-
+                
                 #u1272a = DMM(port="/dev/ttyUSB10")
-                u1272a = DMM(port="/dev/ttyUSB5")
+                u1272a = DMM(port="/dev/ttyUSB?")
+                u1272a_port = u1272a.getPort()
 
+                u1272a = DMM(port=u1272a_port)
+                vc840 = VC840(port=vc840_port)
+                k2750 = Keithley2750(port=k2750_port)
+                
                 readVoltage = u1272a
                 
                 multiInitialized = True
@@ -201,11 +208,11 @@ while(True):
             for istep in range(nstep):
                 target = start + (end-start)/(nstep-1) * istep 
                 xyTable.move(mode,axis,target)
-                dmm[0].connectChannel(channel[0])
+                k2750.connectChannel(channel[0])
                 v1 = readVoltage.readStable(nMeas=1, accuracy=0.025) 
-                dmm[0].connectChannel(channel[1])
+                k2750.connectChannel(channel[1])
                 v2 = readVoltage.readStable(nMeas=1, accuracy=0.025) 
-                dmm[0].connectChannel(channel[2])
+                k2750.connectChannel(channel[2])
                 v3 = readVoltage.readStable(nMeas=1, accuracy=0.025) 
                 print (" pos: %5d mm, v1=%6.2f mV, v2=%6.2f mV, v3=%6.2f mV" % (target/mm, v1[0], v2[0], v3[0]))
                 ofile.write( "%5d %5d %6.2f %6.2f %6.2f \n" % (istep, target/mm, v1[0], v2[0], v3[0]))
@@ -309,7 +316,7 @@ while(True):
                 Iin = vc840.readCurrent("m")
                 print (".Iin=" + str(Iin) + " mA")
                 
-            dmm[0].connectChannel("@104")
+            k2750.connectChannel("@104")
             while (Vin == None):
                 Vin = readVoltage.readStable(nMeas=1, accuracy=0.05)[0]
                 print (".Vin=" + str(Vin) + " mV")
@@ -414,7 +421,7 @@ while(True):
                     outputFile = outputFileList[iSensor]
                     doMeasurement = True
                     if doMeasurement and (iSensor in pos[2]):
-                        dmm[0].connectChannel(channel[iSensor])
+                        k2750.connectChannel(channel[iSensor])
                         voltage = readVoltage.readStable(nMeas=1, accuracy=0.025) # 5 measurements ? ... 1
 
                         outputFile.write("{:6d} {:6d} {:7.2f} {:7.2f} {:3d}".format(progress-1, progress-1,position[0]/mm,position[1]/mm,len(voltage)))

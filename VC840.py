@@ -133,6 +133,7 @@ class VC840(object):
             self.AC = None
             self._read_raw_value()
 
+            
     def getPort(self):
         return self.port
 

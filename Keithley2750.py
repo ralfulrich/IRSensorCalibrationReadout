@@ -20,17 +20,15 @@ class Keithley2750(object):
             if ("?" in port):
                 self.port = port.replace("?", str(iPort))
             try:
-
-                print (self.port)
+                #print (self.port)
                 self.serial = serial.Serial(self.port, baudrate=19200, xonxoff=True, timeout=1)
                 # time.sleep(.5)
                 self.IDN = self.send_receive("*IDN?")
                 self.send("*OPC")
-                print("IDN=\'" + self.IDN + "\'")
                 if ("2750" not in self.IDN):
                     iPort += 1
                     continue
-                
+                print("IDN=\'" + self.IDN + "\'")
                 self.send("SYST:PRES")
                 self.send("*RST")
                 self.send("*CLS")
@@ -49,8 +47,7 @@ class Keithley2750(object):
                 if (("?" not in port) or iPort == 20):
                     raise
 
-                
-        
+    
     def waitMilli(self, ms) :
         time.sleep(ms/1000.)
         #millis0 = int(round(time.time() * 1000))
