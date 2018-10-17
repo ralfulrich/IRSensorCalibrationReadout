@@ -43,8 +43,11 @@ import sys
 
 
 class XYTable:
-    def __init__(self):
+    def __init__(self, isDummy=False):
         # each axis is specified by a serial port, an axis ID on the controller, and a controller CAN ID 
+        self.isDummy = isDummy
+        if (self.isDummy):
+            return
         self.xAxis = None
         self.yAxis = None
         self.xID = 1
@@ -54,7 +57,7 @@ class XYTable:
         print "Initializing the x/y axis..."
         #        try:
         if True:
-            port="/dev/ttyACM1"
+            port="/dev/ttyACM0"
             print ".connecting to " + port
             axisControl1 = serial.Serial(port)
             axisControl1.baudrate = 9600
@@ -132,6 +135,8 @@ class XYTable:
 
         
     def getRailStatus(self, axis):
+        if (self.isDummy):
+            return 
         if (axis=="x"):
             print '.Status of axis: ' + self.send(self.xAxis, self.xCAN+"?ASTAT") # stage status ausgaben
             print '.Current position: ' + self.send(self.xAxis, self.xCAN+"?CNT"+str(self.xID)) # current position
@@ -141,6 +146,8 @@ class XYTable:
 
         
     def doReference(self):
+        if (self.isDummy):
+            return True
         print ("Reference scan of XY table...")
         print (".limit x: " + self.send(self.xAxis, self.xCAN+"?SMK1") + ", refmask x: " + self.send(self.xAxis, self.xCAN+"?RMK1")+ ", polref x: " + self.send(self.xAxis, self.xCAN+"?RPL1"))
         statX = self.send(self.xAxis, self.xCAN+"?REFST1")
@@ -166,15 +173,20 @@ class XYTable:
         return True
 
     
-    def waitWhile(self, status, wait=1):
+    def waitWhile(self, status, waitMS=100): 
+        if (self.isDummy):
+            return 
         print ('.wait while axes status is ' + status)
         while self.send(self.xAxis, self.xCAN+"?ASTAT") == status or self.send(self.yAxis, self.yCAN+"?ASTAT") == status : 
-            time.sleep(wait)
+            self.waitMilli(waitMS)
+            #time.sleep(wait)
         print (".reached position")
 
         
     # turn off everything
     def turnOff(self):
+        if (self.isDummy):
+            return 
         print "Turning off the axis..."
         self.send(self.xAxis, self.xCAN+"MOFF1")
         self.send(self.yAxis, self.yCAN+"MOFF1")
@@ -183,6 +195,8 @@ class XYTable:
 
     # switch on single axis
     def turnOn(self, axis):
+        if (self.isDummy):
+            return 
         print "Turning on the axis..."
         if (axis=="x"):
             self.send(self.xAxis, self.xCAN+"MON1")
@@ -192,6 +206,8 @@ class XYTable:
         
         
     def move(self, mode, axis, target):
+        if (self.isDummy):
+            return 
         #default is absolute, so set first to relative
         if mode == "r":
             self.setRelative(axis)
@@ -203,30 +219,57 @@ class XYTable:
         #if mode == "r":
         #   self.setAbsolute(axis)
 
+        
+    def move2D(self, mode, targetx, targety):
+        if (self.isDummy):
+            return 
+        #default is absolute, so set first to relative
+        if mode == "r":
+            self.setRelative("x")
+            self.setRelative("y")
+        else:
+            self.setAbsolute("x")
+            self.setAbsolute("y")
+        # go
+        self.setTargetAndGo2D(targetx, targety)
+        # set back to absolute
+        #if mode == "r":
+        #   self.setAbsolute(axis)
+        
                         
     def getCurrentPosition(self):
+        if (self.isDummy):
+            return 0.0, 0.0
         return int(self.send(self.xAxis, self.xCAN+"?CNT1")), int(self.send(self.yAxis, self.yCAN+"?CNT1"))
 
 
     def setOrigin(self):
+        if (self.isDummy):
+            return 
         self.send(self.xAxis, self.xCAN+"CNT1=0")
         self.send(self.yAxis, self.yCAN+"CNT1=0")
 
     
     def setTargetAndGo(self, axis, target):
+        if (self.isDummy):
+            return 
         if (axis=="x"):
             self.send(self.xAxis, self.xCAN+"PSET"+str(self.xID)+"="+str(target)) # set target position
             self.send(self.xAxis, self.xCAN+"PGO"+str(self.xID))# start positioning the stage
             while self.send(self.xAxis, self.xCAN+"?ASTAT") == 'T': # wait till movement is finished
-                time.sleep(0.1)
+                #time.sleep(0.1)
+                self.waitMilli(100)
         else:
             self.send(self.yAxis, self.yCAN+"PSET"+str(self.yID)+"="+str(target)) # set target position
             self.send(self.yAxis, self.yCAN+"PGO"+str(self.yID))# start positioning the stage
             while self.send(self.yAxis, self.yCAN+"?ASTAT") == 'T': # wait till movement is finished
-                time.sleep(0.1)
+                #time.sleep(0.1)
+                self.waitMilli(100)
 
                 
     def setTargetAndGo2D(self, targetx, targety):
+        if (self.isDummy):
+            return 
         self.send(self.xAxis, self.xCAN+"PSET"+str(self.xID)+"="+str(targetx)) # set target position
         self.send(self.xAxis, self.xCAN+"PGO"+str(self.xID))# start positioning the stage
 
@@ -234,12 +277,16 @@ class XYTable:
         self.send(self.yAxis, self.yCAN+"PGO"+str(self.yID))# start positioning the stage
 
         while self.send(self.xAxis, self.xCAN+"?ASTAT") == 'T': # wait till movement is finished
-            time.sleep(0.1)
+            #time.sleep(0.1)
+            self.waitMilli(100)
         while self.send(self.yAxis, self.yCAN+"?ASTAT") == 'T': # wait till movement is finished
-            time.sleep(0.1)
+            #time.sleep(0.1)
+            self.waitMilli(100)
 
                 
     def setRelative(self, axis):
+        if (self.isDummy):
+            return 
         if (axis == "x"):
             self.send(self.xAxis, self.xCAN+"RELAT"+str(self.xID))
         else:
@@ -247,6 +294,8 @@ class XYTable:
 
             
     def setAbsolute(self, axis):
+        if (self.isDummy):
+            return 
         if (axis == "x"):
             self.send(self.xAxis, self.xCAN+"ABSOL"+str(self.xID))
         else:
@@ -254,6 +303,8 @@ class XYTable:
 
             
     def initAxis(self, axis):
+        if (self.isDummy):
+            return 
         if (axis == "x"):
             self.send(self.xAxis, self.xCAN+"INIT"+str(self.xID)) # initialize the stage
         else:
@@ -261,6 +312,8 @@ class XYTable:
 
         
     def setupAxis(self, axis, refmask="0001", refmask2="1110"): # RMK, RPL (MAXSTP,MAXDEC,MINDEC,MINSTP), I don't unerdstand that...
+        if (self.isDummy):
+            return 
         if (axis=="x") :
             self.send(self.xAxis, self.xCAN+"PVEL"+str(self.xID)+"=25000") # set max velocity
             self.send(self.xAxis, self.xCAN+"ACC"+str(self.xID)+"=100000") # set accerleration
@@ -278,7 +331,26 @@ class XYTable:
 
         
     def send(self, dev, command): # function for sending commands to the stage
+        if (self.isDummy):
+            return 
         dev.write(command + "\r")
-        time.sleep(0.05)
-        return dev.read(1024).strip()
+        self.waitMilli(50)
+        received = ""
+        while True:
+            try:
+                received = dev.read(1024)
+            except serial.SerialException as e:
+                print ("SerialException AxisHelper::send cmd=" + command  + " " + str(e))
+                continue
+            break            
+        return received.strip() 
  
+
+    def waitMilli(self, ms) :
+        time.sleep(ms/1000.)
+        #millis0 = int(round(time.time() * 1000))
+        #while (True) :
+        #    millis1 = int(round(time.time() * 1000))
+        #    if (millis1-millis0 > ms) :
+        #        break
+    

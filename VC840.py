@@ -67,8 +67,11 @@ class VC840(object):
             'temperature': 'u°C',
             'error': '?'}
 
-    def __init__(self, port="/dev/ttyUSB1"):
+    def __init__(self, port="/dev/ttyUSB0", isDummy=False):
         """ """
+        self.isDummy = isDummy
+        if (self.isDummy):
+            return
         print ("VC840, init with port : " + port)
         if ("?" in port):
             iPort = 0
@@ -123,6 +126,8 @@ class VC840(object):
     
     def _read_raw_value(self):
         """ returns read bytes as list of integers """
+        if (self.isDummy):
+            return       
         for n in range(5):  # 5 attempts to read
             self.serial.flushInput()
             self.serial.setDTR(1)
@@ -154,7 +159,8 @@ class VC840(object):
 
     def decode(self):
         """ decode data telegram """
-
+        if (self.isDummy):
+            return
         # step 1: decode word for word
         word = self.data[0]
         self.rs232 = word & 0x1 > 0
@@ -262,6 +268,9 @@ class VC840(object):
 
             
     def readVoltage(self,prefix):
+        if (self.isDummy):
+            return None
+       
         try:
             self._read_raw_value()
         except ValueError, e:
@@ -288,10 +297,42 @@ class VC840(object):
         #time.sleep(0.001)
 
 
+        
+    def readCurrent(self,prefix):
+        if (self.isDummy):
+            return None
+
+        try:
+            self._read_raw_value()
+        except ValueError, e:
+            return None
+
+        if not self.data:
+            return None
+
+        self.decode()
+        if self.Error:
+            return None
+
+        if self.unit != "A":
+            return None
+
+	if self.value == 'Inf':
+	    return None
+
+	if prefix == "m":
+	    return self.value*1000.
+	else:
+	    return self.value
+
+
+        
     def readStable(self, nMeas):
 
         voltage = []
-        
+        if (self.isDummy):
+            return [0.0]
+
         # check for stability
         for m in range(20):
             tmp1 = None

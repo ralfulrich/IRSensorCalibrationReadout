@@ -9,6 +9,9 @@ from AxisHelper import *
 from DMM import *
 from Keithley2750 import *
 
+import smtplib
+from email.mime.text import MIMEText
+
 # def getK(mult):
 #         received = ""
 #         #received = mult.readline()
@@ -44,7 +47,7 @@ def doConnectionCheck():
 	print "Testing x/y axis connections:"
         isSPOCK = False
 	try:
-		axisControl1 = serial.Serial("/dev/ttyACM1")
+		axisControl1 = serial.Serial("/dev/ttyACM0")
 		axisControl1.baudrate = 9600
 		axisControl1.timeout = 0.2
 		print "    Axis 1 connection OK"
@@ -66,22 +69,28 @@ def doConnectionCheck():
 			else:
 				print "        I don't know this serial number -> FIX!!!"
 			print "    Axis 1 status \'" + send(axisControl1, "?ASTAT") + "\'"
-
+                        
                         send(axisControl1, "00INIT1")
                         send(axisControl1, "00EFREE1")
-
+                        
                         send(axisControl1, "01INIT1")
                         send(axisControl1, "01EFREE1")
                         
                         send(axisControl1, "00STOP1")
                         send(axisControl1, "01STOP1")
-                        send(axisControl1, "RESETMB")
-                        send(axisControl1, "00RESETMB")
-                        send(axisControl1, "01RESETMB")
-                        send(axisControl1, "ERRCLEAR")
-                        send(axisControl1, "00ERRCLEAR")
-                        send(axisControl1, "01ERRCLEAR")
-		except:
+                        
+                        print(send(axisControl1, "00?MSG"))
+                        print(send(axisControl1, "01?MSG"))
+
+                        #send(axisControl1, "RESETMB")
+                        #send(axisControl1, "00RESETMB")
+                        #send(axisControl1, "01RESETMB")
+                        #send(axisControl1, "ERRCLEAR")
+                        #send(axisControl1, "00ERRCLEAR")
+                        #send(axisControl1, "01ERRCLEAR")
+
+
+                except:
 			print "Axis 1 communication not OK -> FIX!!!"
 			raise RuntimeError("Axis not working!")
 		print "    Axis 1 OK and working !"
@@ -122,46 +131,90 @@ def doConnectionCheck():
                         print ""
                         ready = False
  
-	print ""
+
+        print ""
 	print ""	
-	print "Checking communication with multimeter:"
+	print "Checking communication with multimeter U1272A:"
+
+        dmm = DMM(port="/dev/ttyUSB5")
+        print (str(dmm.readVoltage("m")))
+        print (str(dmm.readTemperature()))
+        print (str(dmm.readStable(nMeas=5, accuracy=0.025)))
+
+        
+        print ""
+	print ""	
+	print "Checking communication with multimeter V840:"
+        #                port="/dev/ttyUSB?" # scan for right device
+        #port="/dev/ttyUSB0"  
+        port="/dev/ttyUSB6"  
+        #port="/dev/ttyUSB5" # ...  
+	vc = VC840(port=port)
+        print "    connecting to device at " + vc.getPort()
+	print "    serial port access OK"
 	try:
-                #                port="/dev/ttyUSB?" # scan for right device
-                port="/dev/ttyUSB7" 
-		vc = VC840(port=port)
-                print "    connecting to device at " + vc.getPort()
-		print "    serial port access OK"
-		try:
-		        vc._read_raw_value()
-			print "    communication OK"
-		except ValueError, e:
-			print "    communication not OK -> FIX!!!"
-			raise RuntimeError("Multimeter not working!")
+                vc._read_raw_value()
+		print ("read = " + str(vc.readCurrent("m")))
+		print "    communication OK"
+	except ValueError, e:
+		print "    communication not OK -> FIX!!!"
+		raise RuntimeError("Multimeter not working!")
 	
-	except:
-		print "    multimeter not OK -> FIX!!!"
-		ready = False
 
 
                 
         if (isSPOCK):
-                try:
-                        print ("\n\n\n\n")
-                        print ("try Keitley")
-                        port="/dev/ttyUSB8" # use ? to scan for right device
-		        k2750 = Keithley2750(port=port)
-                        print "    connecting to device at " + k2750.getPort()
-		        print "    serial port access OK"
-                        
-                        k2750.connectChannel("@101")
-                        k2750.readVoltage("m")
-                        k2750.readStable(2)
-                        
-	        except:
-		        print "    Keithley 2750 not OK -> FIX!!!"
-		        ready = False
+                print ("\n\n\n\n")
+                print ("try Keitley")
+                port="/dev/ttyUSB7" # use ? to scan for right device
+                #port="/dev/ttyUSB6" # use ? to scan for right device
+                #port="/dev/ttyUSB1" # use ? to scan for right device
+		k2750 = Keithley2750(port=port, verbose=True)
+                print "    connecting to device at " + k2750.getPort()
+		print "    serial port access OK"
                 
+                k2750.connectChannel("@101")
+                k2750.readVoltage("m")
+                v=k2750.readStable(2)
+                print ("result: " + str(v))
                 
+                k2750.connectChannel("@102")
+                k2750.readVoltage("m")
+                v=k2750.readStable(2)
+                print ("result: " + str(v))
+                
+                k2750.connectChannel("@103")
+                k2750.readVoltage("m")
+                k2750.readStable(2)
+                print ("result: " + str(v))
+                
+                k2750.connectChannel("@104")
+                k2750.readVoltage("m")
+                v=k2750.readStable(2)
+                print ("result: " + str(v))
+                
+                doStress = True
+                if doStress:
+                        for i in range(50):
+                                for j in range(4):
+                                        ch = i%4
+                                        k2750.connectChannel("@10"+str(ch+1))
+                                        v = k2750.readStable(5)
+                                        print (str(i) + "   " + str(v))
+                                
+                        
+
+        print ("send email")
+        email = "works!\n"
+        msg = MIMEText(email)
+        msg['Subject'] = 'IR sensor scan test'
+        msg['From'] = "spock@kit.edu"
+        msg['To'] = "ralf.ulrich@kit.edu"
+        s = smtplib.SMTP('smtp.kit.edu',25)
+        s.sendmail("CASTORgroup@kit.edu", ["ralf.ulrich@kit.edu"], msg.as_string())
+        s.quit()
+
+                        
 	print ""
 	if ready: print "All checks are OK! You are ready to Go!!!"
 	if not ready: print "Not all checks are OK! Please fix everything and redo this test!!!"

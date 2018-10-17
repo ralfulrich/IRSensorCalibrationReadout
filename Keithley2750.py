@@ -5,54 +5,119 @@ import time
 
 class Keithley2750(object):
 
-    def __init__(self, port="/dev/ttyUSB1"):
+    def __init__(self, port="/dev/ttyUSB1",verbose=False,isDummy=False):
         """ """
+        self.isDummy = isDummy
+        if (self.isDummy):
+            return
+        self.verbose = verbose
         print ("Keithley2750, init with port : " + port)
-        print ("->make sure that your 27xx is configured for RS232 control!")
+        if (self.verbose):
+            print ("->make sure that your 27xx is configured for RS232 control!")
         self.port = port
-        self.serial = serial.Serial(self.port, baudrate=9600, xonxoff=True, timeout=1)
+        self.serial = serial.Serial(self.port, baudrate=19200, xonxoff=True, timeout=.1)
+        time.sleep(1)
 
+        self.send("SYST:PRES")
         self.send("*RST")
         self.send("*CLS")
         #self.send("INIT:CONT")
-        self.send("SYST:PRES")
         self.send("ABOR")
-        self.send("*RST")
         self.send("*OPC")
         self.send("INIT:CONT OFF")
         self.send("TRIG:COUN 1")
         self.send("SAMP:COUN 1")
+        self.send("*OPC")
         self.IDN = self.send_receive("*IDN?")
+        self.send("*OPC")
         print("IDN=" + self.IDN)
-
+        self.previousChan = "unknown"
         
+    def waitMilli(self, ms) :
+        time.sleep(ms/1000.)
+        #millis0 = int(round(time.time() * 1000))
+        #while (True) :
+        #    millis1 = int(round(time.time() * 1000))
+        #    if (millis1-millis0 > ms) :
+        #        break
+
+            
     def getPort(self):
         return self.port
         
         
     def send(self, command):
-        print("Keithley2750 write command: " + command)
-        self.serial.write(command + '\r')
+        if (self.isDummy):
+            return
+        #time.sleep(0.1)
+        if (self.verbose):
+            print("Keithley2750 write command: " + command)
+
+        nTry = 0
+        while True:
+            try:
+                self.serial.write(command + '\r')
+                self.waitMilli(50)
+                break
+            except serial.SerialException as e:
+                nTry += 1
+            if nTry > 5:
+                print("Serious error in Keitley::send \'" + command + "\'")
+                break
+                
         
 
     def send_receive(self,command):
+        if (self.isDummy):
+            return 0.0
         self.send(command)
         received = ""
-        char = self.serial.read()
+        char = ""
         while char != '\r':
-            if char == '\r':
+            try:
+                #self.waitMilli(100)
+                char = self.serial.read()
+            except serial.SerialException as e:
+                print ("Serious error in Keithley::read. Return 0.")
+                return "0.0"
+            if char:
+                received += char
+            else:
                 break
-            received += char
-            char = self.serial.read()
-        print ("received: " + received)
+        if (self.verbose):
+            print ("received: " + received)
         return received
+
+    
+    def send_receive_new(self,command):
+        if (self.isDummy):
+            return 0.0
+        self.send(command)
+        self.waitMilli(50)
+        received = ""
+        while True:
+            try:
+                received = self.serial.read(1024)
+            except serial.SerialException as e:
+                print ("SerialException Keithley::send cmd=" + command  + " " + str(e))
+                continue
+            break            
+        if (self.verbose):
+            print ("received: " + received)
+        return received.strip() 
 
 
     def connectChannel(self, chan):
+        if (chan==self.previousChan):
+            return
+        self.previousChan = chan
         self.send("ROUT:CLOS (" + chan + ")")
+        self.send("*WAI")
+        self.send("*OPC")
 
         
     def readVoltage(self, prefix):
+        self.send("*WAI")
         V = self.convert(self.send_receive('READ?'))
         if (prefix == 'm'):
             V *= 1000
@@ -61,30 +126,44 @@ class Keithley2750(object):
     
     # +1.12006772E+00VDC,+0.000SECS,+00000RDNG#
     def convert(self, data):
-        return float(data.split(',')[0].replace("VDC",""))
+        if (self.isDummy):
+            return 0.0
+        try:
+            return float(data.split(',')[0].replace("VDC",""))
+        except ValueError:
+            return 0.0
     
     
-    def readStable(self, nMeas):
-        voltage = []        
+    def readStable(self, nMeas=1, accuracy=0.025):
+        if (self.isDummy):
+            return [0.0]
         # check for stability
+        nRead = 0
+        previous = None
+        data = None
         for m in range(20):
-            tmp1 = None
-            tmp2 = None
-            while tmp1 == None or tmp2==None:
-                tmp1 = self.readVoltage("m")
-                time.sleep(0.2)
-                tmp2 = self.readVoltage("m")
-            if (tmp1-tmp2)<(0.025*tmp1):
-                break
+            nRead += 1
+            self.waitMilli(50)
+            data = self.readVoltage("m")
+            if (data!=None and previous!=None):
+                if (data!=0) :
+                    #if (data==0 and previous==0) or (abs(data-previous)/data < accuracy):
+                    if (abs(data-previous) < abs(data*accuracy)):
+                        break
+            previous = data
 
-        # save nMeas values
-        for m in range(nMeas):
+        # save nMeas-2 values
+        voltage = [previous, data]
+        for m in range(nMeas-2):
             while True:
                 meas = self.readVoltage("m")
                 if meas:
                     voltage.append(meas)
                     break
 
+        if (self.verbose):
+            print ("keithley, read_stable, nRead=%d" % nRead)
+                
         return voltage
 
     

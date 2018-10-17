@@ -5,54 +5,81 @@ import time
 
 class DMM(object):
 
-    def __init__(self, port="/dev/ttyUSB1"):
+    def __init__(self, port="/dev/ttyUSB10"):
         """ """
         print ("DMM, init with port : " + port)
         self.port = port
-        self.serial = serial.Serial(self.port, baudrate=19200, timeout=0.)
+        self.serial = serial.Serial(self.port, baudrate=19200, timeout=.1)
+        time.sleep(1)
+        self.send_receive("RST")
+        print('meter,  identifying meter: ' + self.send_receive("?IDN?"))
+        print('meter,  Battery: ' + self.send_receive("SYST:BATT?"))
+        print('meter,  Config: ' + self.send_receive("CONF?"))
 
-
-    def send_receive(self,command):
-        print("DMM command: " + command)
-        self.serial.write(command + '\n')
+        
+    def send_receive(self,command, length=200):
+        self.send(command)
+        time.sleep(0.25)
         received = ""
-        char = self.serial.read()
-        while char != '\n':
-            if char == '\n':
-                break
-            received += char
-            char = self.serial.read()
+        while True:
+            try:
+                received = self.serial.read(1024)
+            except serial.SerialException as e:
+                print ("SerialException DMM::send cmd=" + command  + " " + str(e))
+                continue
+            break            
+        return received.strip() 
 
-        #received = ser.read(100)
-        #received = received.replace('\n','')
-        print ("received: " + received)
-        return received
+    
+    def send(self, cmd):
+        self.serial.write(cmd + "\n")
+        time.sleep(0.25)
 
-
-    def readVoltage(self, prefix):
-        V = float(self.send_receive('READ?'))
+    
+    def readVoltage(self, prefix=""):
+        V = self.read_meter("no")
         if (prefix == 'm'):
             V *= 1000
         return V
 
     
-    def readStable(self, nMeas):
+    def readTemperature(self):
+        V = self.read_meter("yes")
+        return V
 
-        voltage = []
-        
-        # check for stability
+    
+    def read_meter(self, second='no'):
+
+        responsestr = ""
+        if second != 'yes' :
+            responsestr = self.send_receive("FETC?", length=17)
+        else :
+            responsestr = self.send_receive("FETC? @2", length=17)
+        response = float(responsestr)
+        return response
+
+
+
+    
+    def readStable(self, nMeas=2, accuracy=0.025):
+
+        nRead = 0
+        previous = None
+        data = None
         for m in range(20):
-            tmp1 = None
-            tmp2 = None
-            while tmp1 == None or tmp2==None:
-                tmp1 = self.readVoltage("m")
-                time.sleep(0.2)
-                tmp2 = self.readVoltage("m")
-            if (tmp1-tmp2)<(0.025*tmp1):
-                break
+            nRead += 1
+            data = self.readVoltage("m")
+            if (data!=None and previous!=None):
+                if (data!=0) :
+                    #if (data==0 and previous==0) or (abs(data-previous)/data < accuracy):
+                    if (abs(data-previous) < abs(accuracy*data)):
+                        break
+            previous = data
+            
 
-        # save nMeas values
-        for m in range(nMeas):
+        # save nMeas-2 values
+        voltage = [previous, data]
+        for m in range(nMeas-2):
             while True:
                 meas = self.readVoltage("m")
                 if meas:
