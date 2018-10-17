@@ -23,7 +23,13 @@ class Keithley2750(object):
 
                 print (self.port)
                 self.serial = serial.Serial(self.port, baudrate=19200, xonxoff=True, timeout=1)
-                time.sleep(.5)
+                # time.sleep(.5)
+                self.IDN = self.send_receive("*IDN?")
+                self.send("*OPC")
+                print("IDN=\'" + self.IDN + "\'")
+                if ("2750" not in self.IDN):
+                    iPort += 1
+                    continue
                 
                 self.send("SYST:PRES")
                 self.send("*RST")
@@ -35,12 +41,6 @@ class Keithley2750(object):
                 self.send("TRIG:COUN 1")
                 self.send("SAMP:COUN 1")
                 self.send("*OPC")
-                self.IDN = self.send_receive("*IDN?")
-                self.send("*OPC")
-                print("IDN=\'" + self.IDN + "\'")
-                if ("2750" not in self.IDN):
-                    iPort += 1
-                    continue
                 self.previousChan = "unknown"
                 print ("Keithley, init with port : " + self.port)
                 break

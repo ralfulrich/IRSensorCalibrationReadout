@@ -17,7 +17,12 @@ class DMM(object):
                 self.serial = serial.Serial(self.port, baudrate=19200, timeout=.1)
                 time.sleep(1)
                 self.send_receive("RST")
-                print('meter,  identifying meter: ' + self.send_receive("?IDN?"))
+                IDN = self.send_receive("?IDN?")
+                if ("*E" not in IDN):
+                    iPort += 1
+                    continue
+                # read_meter(self, second='no')
+                print('meter,  identifying meter: ' + IDN)
                 print('meter,  Battery: ' + self.send_receive("SYST:BATT?"))
                 print('meter,  Config: ' + self.send_receive("CONF?"))
                 print ("DMM, init with port : " + self.port)
