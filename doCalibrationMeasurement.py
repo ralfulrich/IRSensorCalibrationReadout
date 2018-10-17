@@ -47,6 +47,7 @@ multiInitialized = False
 xyTable = None
 dmm = [] # digital multimeters
 channel = []
+k2750 = None
 vc840 = None
 u1272a = None
 
@@ -118,9 +119,11 @@ while(True):
 
 
     elif command == "keithley" or command == "k":
-        readVoltage = keithley2750
+        print ("measure with Keithley")
+        readVoltage = k2750
 
     elif command == "agilent" or command == "a":
+        print ("measure with Agilent")
         readVoltage = u1272a
     
     elif command  == "ref" or command == "r":
