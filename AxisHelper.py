@@ -117,30 +117,45 @@ class XYTable:
             self.setupAxis("x", "0010", "1111")
             self.setupAxis("y", "0010", "1111")
                 
-            print ".status x: "
-            self.getRailStatus("x")
-            print ".status y: " 
-            self.getRailStatus("y")
+            #print ".status x: "
+            #self.getRailStatus("x")
+            #print ".status y: " 
+            #self.getRailStatus("y")
 
             # check if everything is OK
             if self.send(self.xAxis, self.xCAN+"?ASTAT") != 'R' or self.send(self.yAxis, self.yCAN+"?ASTAT") != 'R':
                 print "!Not all axes are in READY status. Fix!"
                 sys.exit(1)
             
-            #except:
-   	    #print "Axis communication not OK -> FIX!!!"
-	    # raise RuntimeError("Axis not working!")
-
         print ".initialized"
 
+
+    def check(self):
+        if (self.isDummy):
+            return 
+            
+        self.send(self.xAxis, "00STOP1")
+        self.send(self.yAxis, "01STOP1")
+
+        self.send(self.xAxis, "00INIT1")
+        self.send(self.xAxis, "00EFREE1")
+                        
+        self.send(self.yAxis, "01INIT1")
+        self.send(self.yAxis, "01EFREE1")
+                                                
+        print("MSG=" + self.send(self.xAxis, "00?MSG"))
+        print("MSG=" + self.send(self.yAxis, "01?MSG"))
+        
         
     def getRailStatus(self, axis):
         if (self.isDummy):
             return 
         if (axis=="x"):
+            print ".status axis x: "
             print '.Status of axis: ' + self.send(self.xAxis, self.xCAN+"?ASTAT") # stage status ausgaben
             print '.Current position: ' + self.send(self.xAxis, self.xCAN+"?CNT"+str(self.xID)) # current position
         else:
+            print ".status axis y: "
             print '.Status of axis: ' + self.send(self.yAxis, self.yCAN+"?ASTAT") # stage status ausgaben
             print '.Current position: ' + self.send(self.yAxis, self.yCAN+"?CNT"+str(self.yID)) # current position
 

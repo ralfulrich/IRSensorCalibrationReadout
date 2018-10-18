@@ -99,6 +99,7 @@ class Keithley2750(object):
                 received += char
             else:
                 break
+        received = received.strip()
         if (self.verbose):
             print ("received: " + received)
         return received
@@ -122,6 +123,9 @@ class Keithley2750(object):
         return received.strip() 
 
 
+    def getPreviousChannel(self):
+        return self.previousChan
+    
     def connectChannel(self, chan):
         if (chan==self.previousChan):
             return
