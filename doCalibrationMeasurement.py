@@ -16,6 +16,8 @@ from progressbar import *
 
 import smtplib
 from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
 
 def isInEllipse(x, y, x0, y0, a, b):
     if (x-x0)**2/a**2 + (y-y0)**2/b**2 <= 1.:
@@ -147,12 +149,12 @@ while(True):
         print("-----------------------------------------------------------\n")
         if not tableInitialized:
             print ".Please init the devices first"
-        else:
-            try:
-                if not xyTable.doReference():
-                    print ".Reference scan could not be performed, please check connection and init stages again!" 
-            except:
-                print ".Weird error - please try reinitializing!"
+            continue
+        try:
+            if not xyTable.doReference():
+                print ".Reference scan could not be performed, please check connection and init stages again!" 
+        except:
+            print ".Weird error - please try reinitializing!"
         continue
 
     
@@ -161,17 +163,20 @@ while(True):
         print("-----------------------------------------------------------\n")
         if not tableInitialized:
             print ".Please init the devices first"
-        else:
-            try:
-                pos=xyTable.getCurrentPosition()
-                print ".The current position is ", pos[0]/mm, "|" , pos[1]/mm, "mm."
-            except:
-                print ".Weird error - please try reinitializing!"
+            continue
+        try:
+            pos=xyTable.getCurrentPosition()
+            print ".The current position is ", pos[0]/mm, "|" , pos[1]/mm, "mm."
+        except:
+            print ".Weird error - please try reinitializing!"
         continue
 
     elif command == "move" or command == "m":
         #os.system('clear')
         print("-----------------------------------------------------------\n")
+        if not tableInitialized:
+            print ".Please init the devices first"
+            continue
         print ".Preparing manual movement..."
         while(True):
             axis = "u"
@@ -197,6 +202,9 @@ while(True):
 
     # -----------------------------------------------------------------------------
     elif command == "pre-scan" or command == "P":
+        if not tableInitialized:
+            print ".Please init the devices first"
+            continue
         #os.system('clear')
         print("-----------------------------------------------------------\n")
         print ".Preparing manual movement..."
@@ -233,6 +241,9 @@ while(True):
         
     # -----------------------------------------------------------------------------------
     elif command == "scan" or command == "s":
+        if not tableInitialized:
+            print ".Please init the devices first"
+            continue
         #os.system('clear')
         print("-----------------------------------------------------------\n")
         print ""
@@ -356,6 +367,7 @@ while(True):
             print (".Temperature=" + str(Temp))
         
         # create output files
+        outputFileNameList = []
         outputFileList = []
         for iSensor in range(len(sensorIDlist)):
             
@@ -370,14 +382,15 @@ while(True):
                     continue
                 print ("Saving sensor " + sensorID + " measurement to file " + filename)
                 
-                if (not dummyRun) :
+                if (not dummyRun) :                    
                     outputFile = open(filename, 'w' ,1)
                     outputFile.write("# Sensor scan measurement of Sensor "+str(sensorID)+"\n")
                     outputFile.write("# Iin= %8.2f mA ,  Vin= %8.2f mV, T= %8.2f C \n" % (Iin, Vin, Temp))
                     outputFile.write("# scanRangeX {:6.2f} mm; scanRangeY {:6.2f} mm; stepSize {:6.2f} mm; initialOffset {:6.2f} mm; sensorX {:6.2f} mm; start position at (x|y)=({:6.2f}|{:6.2f}) mm\n".format(scanRangeX/mm,scanRangeY/mm,stepsize/mm,initialOffset/mm,sensorX/mm,startPosition[0]/mm,startPosition[1]/mm))
                     outputFile.write("# iStep, iStep, Pos x, Pos y, nMeas, Meas1 ... MeasN\n")
+                    outputFileNameList.append(filename)
                     outputFileList.append(outputFile)
-
+                    
                     log.write("# Sensor scan measurement of Sensor "+str(sensorID)+"\n")
                     log.write("# Iin= %8.2f mA ,  Vin= %8.2f mV, T= %8.2f C \n" % (Iin, Vin, Temp))
                     log.write("# scanRangeX {:6.2f} mm; scanRangeY {:6.2f} mm; stepSize {:6.2f} mm; initialOffset {:6.2f} mm; sensorX {:6.2f} mm; start position at (x|y)=({:6.2f}|{:6.2f}) mm\n".format(scanRangeX/mm,scanRangeY/mm,stepsize/mm,initialOffset/mm,sensorX/mm,startPosition[0]/mm,startPosition[1]/mm))
@@ -503,7 +516,9 @@ while(True):
         xyTable.move2D("a", startX, startY)
         endPosition = xyTable.getCurrentPosition() # -> startX, startY
 
+        isFine = True
         if (abs(startX-endPosition[0])>2 or abs(startY-endPosition[1])>2):
+            isFine = False
             print ".WE HAVE A PROBLEM"
             print ".setXY=" + str(startX) +", "+ str(startY) + " but is: " << str(endPosition)
             log.write(".WE HAVE A PROBLEM\n")
@@ -521,20 +536,40 @@ while(True):
             for outputFile in outputFileList:
                 outputFile.write("# END: scan time was  "+str(EndTime-StartTime)+"  seconds\n")
                 outputFile.close()
-        
-            email = "The scan of the sensor " + str(sensorID) + " was successfully completed!\n"
+            
+            attachData = False
+            
+            # ............ send mail
+            email =  "The scan of the sensor " + str(sensorID) + " was completed!\n"
             email += "The scan took " + str((EndTime-StartTime)) + " seconds.\n"
             email += "You can now make the next scan.\n"
-            msg = MIMEText(email)
 
             if receiver != "":
-                msg['Subject'] = 'IR sensor scan completed'
+                msg = MIMEMultipart()
+                if isFine:
+                    msg['Subject'] = 'IR sensor scan completed: SUCCESS'
+                else:
+                    msg['Subject'] = 'IR sensor scan completed: PROBLEM'
                 msg['From'] = "ralf.ulrich@kit.edu"
                 msg['To'] = receiver # +", ralf.ulrich@kit.edu"
 
-                s = smtplib.SMTP('smtp.kit.edu',25)
-                s.sendmail("CASTORgroup@kit.edu", [receiver,"ralf.ulrich@kit.edu"], msg.as_string())
-                s.quit()
+                msg.attach(MIMEText(email)
+
+                if attachData:
+                    for fname in outputFileNameList or [] :
+                        # ..... convert data
+                        os.system("./plotData_basic.py " + fname)
+                        with open(fname, "rb") as atta :
+                            part = MIMEApplication(
+                                atta.read(),
+                                Name = basename(fname))
+                        # After the file is closed
+                        part['Content-Disposition'] = 'attachment; filename="%s"' % basename(fname)
+                        msg.attach(part)
+
+                smtp = smtplib.SMTP('smtp.kit.edu', 25)
+                smtp.sendmail("CASTORgroup@kit.edu", [receiver,"ralf.ulrich@kit.edu"], msg.as_string())
+                smtp.close()
 
         continue
 

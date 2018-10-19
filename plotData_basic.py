@@ -8,6 +8,8 @@ from numpy import ma
 
 from scipy.interpolate import InterpolatedUnivariateSpline
 
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from matplotlib import colors, ticker, cm
@@ -100,20 +102,20 @@ y = np.array(yTmp)
 V = np.array(VTmp)
 
 nbins = pars['scanRangeY'] / pars['stepSize']
-xmin = pars['sensorX'] - pars['scanRangeY']/2
+xmin = pars['sensorX'] - pars['scanRangeY']/2 - pars['stepSize']/2
 xmax = xmin + pars['stepSize']*nbins
-ymin = pars['initialOffset']
+ymin = pars['initialOffset'] - pars['stepSize']/2
 ymax = ymin + pars['stepSize']*nbins
 histData2D, xedges, yedges = np.histogram2d(x, y, bins=nbins , range=[[xmin,xmax],[ymin,ymax]], normed=False, weights=V)
 
-# hoirzontal slice FIT
+# horizontal slice FIT
 xVoltage = np.array(histData2D.T[findBin(yedges,20)])
 xSlice = np.linspace(xedges[0], xedges[-1], num=nbins)
 HorizontalPolfit= np.poly1d(np.polyfit(xSlice[1:], xVoltage[1:], 9))
 maxSignalAt = findMaximum(xSlice[1:], xVoltage[1:])
 
 # vertical slice FIT
-dist = np.linspace(yedges[0]+pars['initialOffset'], yedges[-1]+pars['initialOffset'], num=nbins)
+dist = np.linspace(yedges[0], yedges[-1], num=nbins)
 voltage = np.array(histData2D.T[:,findBin(xedges, maxSignalAt)]) # pars['sensorX'])])
 param = np.polyfit(dist[findBin(dist,5):], voltage[findBin(dist,5):], 9)
 CentralPolfit= np.poly1d(param)
@@ -175,4 +177,7 @@ plt.tight_layout()
 plt.savefig("SensorData.png",bbox_inches="tight")
 plt.savefig("SensorData_"+sensorName+".pdf",bbox_inches="tight")
 
-os.system("eog SensorData.png")
+try:
+    os.system("eog SensorData.png")
+except:
+    pass
