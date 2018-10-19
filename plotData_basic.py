@@ -1,9 +1,12 @@
 #!/usr/bin/python
 
 import os, sys
+import re
 
 import numpy as np
 from numpy import ma
+
+from scipy.interpolate import InterpolatedUnivariateSpline
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
@@ -11,11 +14,45 @@ from matplotlib import colors, ticker, cm
 
 import math
 
-try:
-    filename = str(sys.argv[1])
-except IOError:
+def getPar(line,pars,name) :
+    if name not in line:
+        return
+    pos = line.find(name)
+    pars[name] = float(re.split(',| |;|', line[pos+len(name):].strip())[0])
+
+
+def findBin(vec, val):
+    for i in range(len(vec)-1):
+        if (vec[i]<=val and vec[i+1]>val):
+            return i
+    return None
+
+
+def findBinCenter(vec, val):
+    i = findBin(vec, val)
+    return (vec[i] + vec[i+1]) / 2
+
+
+def findMaximum(x_values, y_values) :
+    f = InterpolatedUnivariateSpline(x_values, y_values, k=4)
+    cr_pts = f.derivative().roots()
+    cr_pts = np.append(cr_pts, (x_values[0], x_values[-1]))  # also check the endpoints of the interval
+    cr_vals = f(cr_pts)
+    min_index = np.argmin(cr_vals)
+    max_index = np.argmax(cr_vals)    
+    #print("Maximum value {} at {}\nMinimum value {} at {}".format(cr_vals[max_index], cr_pts[max_index], cr_vals[min_index], cr_pts[min_index]))
+    return cr_pts[max_index]
+    
+    
+    
+if (len(sys.argv)<2):
     print "Please give a valid data file!"
-    sys.exit
+    sys.exit()
+
+filename = str(sys.argv[1])
+sensorName = filename[filename.rfind('/')+12:filename.rfind('/')+17]
+
+pars = dict()
 
 with open(filename,'r') as f:
 
@@ -24,6 +61,12 @@ with open(filename,'r') as f:
     VTmp = []
     for line in f:
         if line[0] == "#":
+            getPar(line, pars, "scanRangeX")
+            getPar(line, pars, "scanRangeY")
+            getPar(line, pars, "initialOffset")
+            getPar(line, pars, "stepSize")
+            getPar(line, pars, "sensorX")
+            # scanRangeX 151.50 mm; scanRangeY  70.00 mm; stepSize   2.00 mm; initialOffset   4.00 mm; sensorX 155.00 mm; start position at (x|y)=(119.92|  0.00) mm
             continue
         data = line.split()
         values = []
@@ -44,73 +87,92 @@ with open(filename,'r') as f:
             Meas/= nMeas
         
         xTmp.append(xPos)
-        yTmp.append(yPos)
+        yTmp.append(yPos + pars['initialOffset'])
         if Meas > 1e5:
             VTmp.append(0)
         else:
             VTmp.append(Meas)
 
+print (str(pars))
+            
 x = np.array(xTmp)
 y = np.array(yTmp)
 V = np.array(VTmp)
 
-H, xedges, yedges = np.histogram2d(x, y, bins=101 , range=[[24.5,125.5],[39.5,140.5]], normed=False, weights=V)
+nbins = pars['scanRangeY'] / pars['stepSize']
+xmin = pars['sensorX'] - pars['scanRangeY']/2
+xmax = xmin + pars['stepSize']*nbins
+ymin = pars['initialOffset']
+ymax = ymin + pars['stepSize']*nbins
+histData2D, xedges, yedges = np.histogram2d(x, y, bins=nbins , range=[[xmin,xmax],[ymin,ymax]], normed=False, weights=V)
 
-dist = np.linspace(-1*(yedges[0]-133)+4, -1*(yedges[-1]-133)+4, num=101)
-voltage = np.array(H.T[:,37])
-param = np.polyfit(dist[40:-8], voltage[40:-8], 9)
+# hoirzontal slice FIT
+xVoltage = np.array(histData2D.T[findBin(yedges,20)])
+xSlice = np.linspace(xedges[0], xedges[-1], num=nbins)
+HorizontalPolfit= np.poly1d(np.polyfit(xSlice[1:], xVoltage[1:], 9))
+maxSignalAt = findMaximum(xSlice[1:], xVoltage[1:])
+
+# vertical slice FIT
+dist = np.linspace(yedges[0]+pars['initialOffset'], yedges[-1]+pars['initialOffset'], num=nbins)
+voltage = np.array(histData2D.T[:,findBin(xedges, maxSignalAt)]) # pars['sensorX'])])
+param = np.polyfit(dist[findBin(dist,5):], voltage[findBin(dist,5):], 9)
 CentralPolfit= np.poly1d(param)
 
-xVoltage = np.array(H.T[80])
-xSlice = np.linspace(xedges[0]-62, xedges[-1]-62, num=101)
-HorizontalPolfit= np.poly1d(np.polyfit(xSlice[15:-40], xVoltage[15:-40], 9))
+
+
 #### Drawing
 
+# main 2d plot --------------
 fig = plt.figure(figsize=[12,8])
 ax1 = fig.add_subplot(121)
 ax1.set_xlim([x.min()-5,x.max()+5])
-ax1.set_ylim([y.min()-5,y.max()+30])
+ax1.set_ylim([y.min()-10,y.max()+30])
 ax1.set_xlabel('x [mm]',fontsize=18)
 ax1.set_ylabel('y [mm]',fontsize=18)
 ax1.invert_xaxis()
-ax1.set_title(filename[19:24-len(filename)],fontsize=18)
-plt.imshow(H.T, origin='lower',interpolation='nearest', extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap="ocean_r")
+ax1.set_title(sensorName,fontsize=18)
+plt.imshow(histData2D.T, origin='lower',interpolation='nearest', extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap="ocean_r")
 plt.colorbar().set_label('voltage [mV]',fontsize=18)
-ellipse = Ellipse(xy=(62,133), width=70, height=140, edgecolor='r', fc='None', lw=2)
-beampipe = circle1=plt.Circle((62,133+4+(57+0.5)/2),(57+0.5)/2,color='black',fill=False,label="beam pipe",lw=2, ls="dashed")
-xslice, = plt.plot([30,100],[yedges[80]+0.5,yedges[80]+0.5],'g--')
-yslice, = plt.plot([xedges[37]+0.5,xedges[37]+0.5],[133,60],'r--')
+
+ellipse = Ellipse(xy=(pars['sensorX'], pars['initialOffset']), width=70, height=140, edgecolor='b', fc='None', lw=1)
+beampipe = circle1=plt.Circle((pars['sensorX'], -(57+0.5)/2), (57+0.5)/2, color='black',fill=False,label="beam pipe",lw=2, ls="dashed")
+
+xslice, = plt.plot([xedges[1],xedges[-1]], [findBinCenter(yedges,20),findBinCenter(yedges,20)], 'r--')
+yslice, = plt.plot([findBinCenter(xedges,maxSignalAt),findBinCenter(xedges,maxSignalAt)], [yedges[1],yedges[-1]], 'r--')
+#yslice, = plt.plot([findBinCenter(xedges,pars['sensorX']),findBinCenter(xedges,pars['sensorX'])], [yedges[1],yedges[-1]], 'r--')
 ax1.add_patch(ellipse)
 ax1.add_patch(beampipe)
 ax1.invert_xaxis()
 plt.legend([ellipse, beampipe, yslice], ['scan range','beampipe','slices'],loc=9)
 plt.tight_layout()
 
+# horizontal fit plot --------------------
 ax2 = fig.add_subplot(222)
-ax2.set_xlim([-20,80])
-ax2.set_ylim([0,3000])
+ax2.set_xlim([-20,80]) # distance
+ax2.set_ylim([0,max(V)*1.2])
 ax2.set_xlabel('distance [mm]',fontsize=18)
 #ax2.set_ylabel('Voltage [mV]',fontsize=18)
 ax2.set_title("vertical slice",fontsize=18)
 data, = plt.plot(dist, voltage , 'k.')
-fit, = plt.plot(dist[40:-8], CentralPolfit(dist[40:-8]), 'r-',lw=2)
+fit, = plt.plot(dist[0:], CentralPolfit(dist[0:]), 'r-',lw=2)
 plt.legend([data, fit], ['data','pol9 fit'])
 text = ""
 for i in range(10):
     text +="p"+str(i)+" = "+str(param[i])+"\n"
 ax2.text(-15, 100,text, fontsize=10)
 
+# vertical fit plot --------------------------
 ax3 = fig.add_subplot(224)
 ax3.set_xlabel('x [mm]',fontsize=18)
-ax3.set_xlim([-40,40])
-ax3.set_ylim([0,3000])
+ax3.set_xlim([xedges[1],xedges[-1]]) # x-interval
+ax3.set_ylim([0,max(V)*1.2])
 ax3.set_title("horizontal slice",fontsize=18)
 data2, = plt.plot(xSlice, xVoltage , 'k.')
-fit2, = plt.plot(xSlice[15:-40], HorizontalPolfit(xSlice[15:-40]), 'g-',lw=2)
+fit2, = plt.plot(xSlice[0:], HorizontalPolfit(xSlice[0:]), 'g-',lw=2)
 plt.legend([data2, fit2], ['data','pol9 fit'])
 
 plt.tight_layout()
 plt.savefig("SensorData.png",bbox_inches="tight")
-plt.savefig("SensorData_"+filename[19:24-len(filename)]+".pdf",bbox_inches="tight")
+plt.savefig("SensorData_"+sensorName+".pdf",bbox_inches="tight")
 
 os.system("eog SensorData.png")

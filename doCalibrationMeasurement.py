@@ -282,6 +282,10 @@ while(True):
         stepsize = float(raw_input(".scanning stepsize in mm [2]: ") or "2") * mm            
         mode = raw_input(".automatic or manual setup of the scan parameters? (a/m) [a]: ") or "a" 
         
+        log.write("sensorIDs: " + str(sensorIDlist) + "\n")
+        log.write("sensorXs: " + str(sensorXlist) + "\n")
+        log.write("stepsize: " + str(stepsize) + "\n")
+        
         scanRangeX= 0.*mm
         scanRangeY= 0.*mm
         initialOffset= 0.*mm
@@ -389,9 +393,15 @@ while(True):
         nRangeCut = 0
         maxRangeCut = 0
         for i in range(nStepsX):
+            posX = startX + xDirection * i*stepsize
             for j in range(nStepsY):
-                posX = startX + xDirection * i*stepsize
-                posY = startY + yDirection * j*stepsize
+                # do position in y-direction like a snake....
+                notEven = (i%2)
+                posY = 0
+                if (notEven):
+                    posY = startY + yDirection * j*stepsize
+                else:
+                    posY = startY + yDirection * (nStepsY-1-j)*stepsize
 
                 log.write("grid " + str(posX) + " " + str(posY) + ' ' + str(posX>=275*mm) + " " )
                 
