@@ -553,9 +553,9 @@ while(True):
                 msg['From'] = "ralf.ulrich@kit.edu"
                 msg['To'] = receiver # +", ralf.ulrich@kit.edu"
 
-                msg.attach(MIMEText(email)
-
-                if attachData:
+                msg.attach(MIMEText(email))
+                
+                if (attachData):
                     for fname in outputFileNameList or [] :
                         # ..... convert data
                         os.system("./plotData_basic.py " + fname)
