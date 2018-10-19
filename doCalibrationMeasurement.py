@@ -537,7 +537,7 @@ while(True):
                 outputFile.write("# END: scan time was  "+str(EndTime-StartTime)+"  seconds\n")
                 outputFile.close()
             
-            attachData = False
+            attachData = True
             
             # ............ send mail
             email =  "The scan of the sensor " + str(sensorID) + " was completed!\n"
@@ -552,19 +552,20 @@ while(True):
                     msg['Subject'] = 'IR sensor scan completed: PROBLEM'
                 msg['From'] = "ralf.ulrich@kit.edu"
                 msg['To'] = receiver # +", ralf.ulrich@kit.edu"
-
+                
                 msg.attach(MIMEText(email)
-
+                
                 if attachData:
                     for fname in outputFileNameList or [] :
                         # ..... convert data
                         os.system("./plotData_basic.py " + fname)
-                        with open(fname, "rb") as atta :
+                        fnamePDF = os.path.splitext(fname) + ".pdf"
+                        with open(fnamePDF, "rb") as atta :
                             part = MIMEApplication(
                                 atta.read(),
-                                Name = basename(fname))
+                                Name = basename(fnamePDF))
                         # After the file is closed
-                        part['Content-Disposition'] = 'attachment; filename="%s"' % basename(fname)
+                        part['Content-Disposition'] = 'attachment; filename="%s"' % basename(fnamePDF)
                         msg.attach(part)
 
                 smtp = smtplib.SMTP('smtp.kit.edu', 25)

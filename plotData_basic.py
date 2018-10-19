@@ -52,11 +52,15 @@ if (len(sys.argv)<2):
     sys.exit()
 
 filename = str(sys.argv[1])
+filepath,filename_w_ext = os.path.split(filename)
+filename_wo_ext,file_extension = os.path.splitext(filename_w_ext)
+
 sensorName = filename[filename.rfind('/')+12:filename.rfind('/')+17]
+
 
 pars = dict()
 
-with open(filename,'r') as f:
+with open(filename, 'r') as f:
 
     xTmp = []
     yTmp = []
@@ -82,8 +86,8 @@ with open(filename,'r') as f:
         Meas = 0.
         nMeas = 0
         for i in range(nMeas0):
-            if values[5+i]  < 1e5:
-                Meas +=values[5+i] 
+            if values[5+i] < 1e5:
+                Meas += values[5+i] 
                 nMeas += 1
         if nMeas != 0:
             Meas/= nMeas
@@ -173,11 +177,14 @@ data2, = plt.plot(xSlice, xVoltage , 'k.')
 fit2, = plt.plot(xSlice[0:], HorizontalPolfit(xSlice[0:]), 'g-',lw=2)
 plt.legend([data2, fit2], ['data','pol9 fit'])
 
+# ----------- print, save and display
 plt.tight_layout()
 plt.savefig("SensorData.png",bbox_inches="tight")
-plt.savefig("SensorData_"+sensorName+".pdf",bbox_inches="tight")
+#plt.savefig("SensorData_"+sensorName+".pdf", bbox_inches="tight")
+plt.savefig(filepath+"/"+filename_wo_ext+".pdf", bbox_inches="tight")
 
 try:
     os.system("eog SensorData.png")
+    #os.system("eog " + filepath+"/"+filename_wo_ext+".pdf")
 except:
     pass
