@@ -53,6 +53,12 @@ def loadData(filename) :
 
     with open(filename, 'r') as f:
 
+        xmin = 0.
+        xmax = 0.
+        ymin = 0.
+        ymax = 0.
+        first = True
+        
         xTmp = []
         yTmp = []
         VTmp = []
@@ -73,6 +79,18 @@ def loadData(filename) :
             yStep=values[1]
             xPos=values[2]
             yPos=values[3]
+            if (first):
+                xmin = xPos
+                xmax = xPos
+                ymin = yPos
+                ymax = yPos
+                first = False
+            else:
+                xmin = min(xmin,xPos)
+                xmax = max(xmax,xPos)
+                ymin = min(ymin,yPos)
+                ymax = max(ymax,yPos)                
+    
             nMeas0=int(values[4])
             Meas = 0.
             nMeas = 0
@@ -96,29 +114,31 @@ def loadData(filename) :
     y = np.array(yTmp)
     V = np.array(VTmp)
 
-    nbins = pars['scanRangeY'] / pars['stepSize']
-    xmin = pars['sensorX'] - pars['scanRangeY']/2 - pars['stepSize']/2
-    xmax = xmin + pars['stepSize']*nbins
-    ymin = pars['initialOffset'] - pars['stepSize']/2
-    ymax = ymin + pars['stepSize']*nbins
-    histData2D, xedges, yedges = np.histogram2d(x, y, bins=nbins , range=[[xmin,xmax],[ymin,ymax]], normed=False, weights=V)
+    nbinsx = int((xmax-xmin) / pars['stepSize'])
+    nbinsy = int((ymax-ymin) / pars['stepSize'])
+    #nbins = pars['scanRangeY'] / pars['stepSize']
+    #xmin = pars['sensorX'] - pars['scanRangeY']/2 - pars['stepSize']/2
+    #xmax = xmin + pars['stepSize']*nbins
+    #ymin = pars['initialOffset'] - pars['stepSize']/2
+    #ymax = ymin + pars['stepSize']*nbins
+    histData2D, xedges, yedges = np.histogram2d(x, y, bins=[nbinsx,nbinsy] , range=[[xmin,xmax],[ymin,ymax]], normed=False, weights=V)
 
-    return pars,nbins,xmin,xmax,ymin,ymax,histData2D,xedges,yedges,x,y,V
+    return pars,nbinsx,nbinsy,xmin,xmax,ymin,ymax,histData2D,xedges,yedges,x,y,V
 
 
 
 def plotData(filename, title, pdfName):
 
-    pars,nbins,xmin,xmax,ymin,ymax,histData2D,xedges,yedges,x,y,V = loadData(filename)
+    pars,nbinsx,nbinsy,xmin,xmax,ymin,ymax,histData2D,xedges,yedges,x,y,V = loadData(filename)
     
     # horizontal slice FIT
     xVoltage = np.array(histData2D.T[findBin(yedges,20)])
-    xSlice = np.linspace(xedges[0], xedges[-1], num=nbins)
+    xSlice = np.linspace(xedges[0], xedges[-1], num=nbinsx)
     HorizontalPolfit= np.poly1d(np.polyfit(xSlice[1:], xVoltage[1:], 9))
     maxSignalAt = findMaximum(xSlice[1:], xVoltage[1:])
 
     # vertical slice FIT
-    dist = np.linspace(yedges[0], yedges[-1], num=nbins)
+    dist = np.linspace(yedges[0], yedges[-1], num=nbinsy)
     voltage = np.array(histData2D.T[:,findBin(xedges, maxSignalAt)]) # pars['sensorX'])])
     param = np.polyfit(dist[findBin(dist,5):], voltage[findBin(dist,5):], 9)
     CentralPolfit= np.poly1d(param)
@@ -181,7 +201,8 @@ def plotData(filename, title, pdfName):
     plt.savefig("SensorData.png",bbox_inches="tight")
     #plt.savefig("SensorData_" + title + ".pdf", bbox_inches="tight")
     plt.savefig(pdfName, bbox_inches="tight")
-
+    print ("output: " + pdfName)
+    
     try:
         os.system("eog SensorData.png")
     except:

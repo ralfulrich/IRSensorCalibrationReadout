@@ -57,7 +57,7 @@ if (len(sys.argv)<3):
     sys.exit()
 
 filename0 = str(sys.argv[1])
-pars,nbins,xmin,xmax,ymin,ymax,histData2D0,xedges0,yedges0,x0,y0,V0 = loadData(filename0)
+pars,nbinsx,nbinsy,xmin,xmax,ymin,ymax,histData2D0,xedges0,yedges0,x0,y0,V0 = loadData(filename0)
 
 #xcenters0 = [(xedges0[i] + xedges0[i+1])/2 for i in range(len(xedges0)-1) ]
 #ycenters0 = [(yedges0[i] + yedges0[i+1])/2 for i in range(len(yedges0)-1) ]
@@ -70,7 +70,7 @@ fig = plt.figure(figsize=[6*ifile, 8])
 for ifile in range(ifile):
 
     filename = str(sys.argv[ifile+2])
-    pars,nbins,xmin,xmax,ymin,ymax,histData2D,xedges,yedges,x,y,V = loadData(filename)
+    pars,nbinsx,nbinsy,xmin,xmax,ymin,ymax,histData2D,xedges,yedges,x,y,V = loadData(filename)
     #xcenters = [(xedges[i] + xedges[i+1])/2 for i in range(len(xedges)-1) ]
     #ycenters = [(yedges[i] + yedges[i+1])/2 for i in range(len(yedges)-1) ]
     #f = interpolate.RectBivariateSpline(xcenters, ycenters, histData2D)

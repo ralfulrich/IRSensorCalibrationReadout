@@ -33,6 +33,5 @@ pdfName = filepath + "/" + filename_wo_ext+".pdf"
 # sensor name...
 title = filename[filename.rfind('/')+12:filename.rfind('/')+17]
 
-
 plotData(filename, title, pdfName)
 
