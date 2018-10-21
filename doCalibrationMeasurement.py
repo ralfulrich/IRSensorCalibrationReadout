@@ -27,6 +27,10 @@ def isInEllipse(x, y, x0, y0, a, b):
 
 mm = 10000.
 
+scanningEllipse_a = 35.*mm
+#scanningEllipse_b = 70.*mm
+scanningEllipse_b = 80.*mm
+
 # these six numbers are from Sebastians setup and will be overwritte below
 startX = (62.-35)*mm  # this is also the default start
 startY = 133.*mm      # this is also the default start
@@ -38,9 +42,6 @@ yDirection = -1
 startY = 0. # SPOCK
 centerY = 0. # SPOCK
 yDirection = 1 # SPOCK
-
-scanningEllipse_a = 35.*mm
-scanningEllipse_b = 70.*mm
 
 ######################################################
 os.system('clear')
@@ -557,13 +558,13 @@ while(True):
                     for fname in outputFileNameList or [] :
                         # ..... convert data
                         os.system("./plotData_basic.py " + fname)
-                        fnamePDF = os.path.splitext(fname) + ".pdf"
+                        fnamePDF = os.path.splitext(fname)[0] + ".pdf"
                         with open(fnamePDF, "rb") as atta :
                             part = MIMEApplication(
                                 atta.read(),
-                                Name = basename(fnamePDF))
+                                Name = os.path.basename(fnamePDF))
                         # After the file is closed
-                        part['Content-Disposition'] = 'attachment; filename="%s"' % basename(fnamePDF)
+                        part['Content-Disposition'] = 'attachment; filename="%s"' % os.path.basename(fnamePDF)
                         msg.attach(part)
 
                 smtp = smtplib.SMTP('smtp.kit.edu', 25)
