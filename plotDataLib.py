@@ -70,6 +70,10 @@ def loadData(filename) :
                 getPar(line, pars, "stepSize")
                 getPar(line, pars, "sensorX")
                 # scanRangeX 151.50 mm; scanRangeY  70.00 mm; stepSize   2.00 mm; initialOffset   4.00 mm; sensorX 155.00 mm; start position at (x|y)=(119.92|  0.00) mm
+                getPar(line, pars, "Iin=")
+                getPar(line, pars, "Vin=")
+                getPar(line, pars, "T=")                
+                # Iin=    30.00 mA ,  Vin= 12151.10 mV, T=    18.74 C 
                 continue
             data = line.split()
             values = []
@@ -78,7 +82,7 @@ def loadData(filename) :
             Step=values[0]
             yStep=values[1]
             xPos=values[2]
-            yPos=values[3]
+            yPos=values[3] + pars['initialOffset']
             if (first):
                 xmin = xPos
                 xmax = xPos
@@ -86,10 +90,10 @@ def loadData(filename) :
                 ymax = yPos
                 first = False
             else:
-                xmin = min(xmin,xPos)
-                xmax = max(xmax,xPos)
-                ymin = min(ymin,yPos)
-                ymax = max(ymax,yPos)                
+                xmin = min(xmin, xPos)
+                xmax = max(xmax, xPos)
+                ymin = min(ymin, yPos)
+                ymax = max(ymax, yPos)                
     
             nMeas0=int(values[4])
             Meas = 0.
@@ -102,7 +106,7 @@ def loadData(filename) :
                 Meas/= nMeas
 
             xTmp.append(xPos)
-            yTmp.append(yPos + pars['initialOffset'])
+            yTmp.append(yPos)
             if Meas > 1e5:
                 VTmp.append(0)
             else:
@@ -114,8 +118,13 @@ def loadData(filename) :
     y = np.array(yTmp)
     V = np.array(VTmp)
 
-    nbinsx = int((xmax-xmin) / pars['stepSize'])
-    nbinsy = int((ymax-ymin) / pars['stepSize'])
+    print xmin, xmax, pars['stepSize'], (xmax-xmin) / pars['stepSize']
+    xmin -= pars['stepSize']/2
+    xmax += pars['stepSize']/2
+    ymin -= pars['stepSize']/2
+    ymax += pars['stepSize']/2
+    nbinsx = int((xmax-xmin) / pars['stepSize']) 
+    nbinsy = int((ymax-ymin) / pars['stepSize']) 
     #nbins = pars['scanRangeY'] / pars['stepSize']
     #xmin = pars['sensorX'] - pars['scanRangeY']/2 - pars['stepSize']/2
     #xmax = xmin + pars['stepSize']*nbins

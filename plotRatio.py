@@ -63,11 +63,12 @@ pars,nbinsx,nbinsy,xmin,xmax,ymin,ymax,histData2D0,xedges0,yedges0,x0,y0,V0 = lo
 #ycenters0 = [(yedges0[i] + yedges0[i+1])/2 for i in range(len(yedges0)-1) ]
 #f0 = interpolate.RectBivariateSpline(xcenters0, ycenters0, histData2D0)
 
-ifile = len(sys.argv)-2
+nfile = len(sys.argv)-2
 
-fig = plt.figure(figsize=[6*ifile, 8])
+#fig, ax = plt.subplots(nfile,1)#,figsize=[6*nfile, 8])
+fig = plt.figure(figsize=[6*nfile, 8])
 
-for ifile in range(ifile):
+for ifile in range(nfile):
 
     filename = str(sys.argv[ifile+2])
     pars,nbinsx,nbinsy,xmin,xmax,ymin,ymax,histData2D,xedges,yedges,x,y,V = loadData(filename)
@@ -75,18 +76,17 @@ for ifile in range(ifile):
     #ycenters = [(yedges[i] + yedges[i+1])/2 for i in range(len(yedges)-1) ]
     #f = interpolate.RectBivariateSpline(xcenters, ycenters, histData2D)
 
-
     V_rel = [0.0] * len(V)
     for iV in range(len(V)):
-        if (V0[iV]!=0):
+        if (V0[iV] != 0):
             V_rel[iV] = V[iV] / V0[iV]
     
-    histData2D_rel, xedges_rel, yedges_rel = np.histogram2d(x, y, bins=nbins , range=[[xmin,xmax],[ymin,ymax]], normed=False, weights=V_rel)
+    histData2D_rel, xedges_rel, yedges_rel = np.histogram2d(x, y, bins=[nbinsx,nbinsy] , range=[[xmin,xmax],[ymin,ymax]], normed=False, weights=V_rel)
     
-    #fig, ax = plt.subplots(nrows=1, ncols=2)
-    ax = fig.add_subplot(121)
+    #fig, ax = plt.subplots(nrows=1, ncols=2, )
+    ax = fig.add_subplot(1, nfile, ifile+1)
     plt.imshow(histData2D_rel.T, origin='lower',interpolation='nearest', extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]], cmap="ocean_r")
-    plt.colorbar().set_label('voltage [mV]',fontsize=18)
+    plt.colorbar().set_label('ratio',fontsize=10)
     #    pc = ax.pcolorfast(xedges, yedges, hrel.T)
 
 plt.show()

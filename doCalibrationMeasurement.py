@@ -538,7 +538,7 @@ while(True):
                 outputFile.write("# END: scan time was  "+str(EndTime-StartTime)+"  seconds\n")
                 outputFile.close()
             
-            attachData = True
+            attachData = False
             
             # ............ send mail
             email =  "The scan of the sensor " + str(sensorID) + " was completed!\n"

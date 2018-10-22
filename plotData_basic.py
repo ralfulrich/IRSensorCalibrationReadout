@@ -28,7 +28,10 @@ if (len(sys.argv)<2):
 filename = str(sys.argv[1])
 filepath,filename_w_ext = os.path.split(filename)
 filename_wo_ext,file_extension = os.path.splitext(filename_w_ext)
-pdfName = filepath + "/" + filename_wo_ext+".pdf"
+if (filepath!=""):
+    pdfName = filepath + "/" + filename_wo_ext+".pdf"
+else:
+    pdfName = filename_wo_ext+".pdf"
 
 # sensor name...
 title = filename[filename.rfind('/')+12:filename.rfind('/')+17]
