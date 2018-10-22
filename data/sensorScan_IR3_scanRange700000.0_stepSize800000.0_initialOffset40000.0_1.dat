@@ -1,0 +1,5 @@
+# Sensor scan measurement of Sensor IR3
+# Iin=    34.78 mA ,  Vin= 12140.80 mV, T=    18.62 C 
+# scanRangeX 151.50 mm; scanRangeY  70.00 mm; stepSize  80.00 mm; initialOffset   4.00 mm; sensorX 155.00 mm; start position at (x|y)=(119.92|  0.00) mm
+# iStep, iStep, Pos x, Pos y, nMeas, Meas1 ... MeasN
+# END: scan time was  35.6710879803  seconds

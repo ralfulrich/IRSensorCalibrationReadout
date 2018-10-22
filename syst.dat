@@ -1,18 +1,27 @@
-1/ 8mm steps
+8mm steps
+
+I-scan
+
+1/ 12V, 35mA
 
 2/ 12V, 30mA
 
-3/ 25mA
+3/ 12V, 25mA
 
-4/ 20mA
+4/ 12V, 20mA
 
+
+V- scan
+
+5/ 35mA, 12V
+
+6/ 10V
+
+7/ 13V  (only IR3 here and later)
+
+8/ 11.6V
 ...........
 
-- 
 
-
-...........
-
-- 35mA, 10V
-- 7.5V
-- 5V
+x/ 7.5V
+x/ 5V

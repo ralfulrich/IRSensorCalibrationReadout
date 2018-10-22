@@ -72,8 +72,9 @@ def loadData(filename) :
                 # scanRangeX 151.50 mm; scanRangeY  70.00 mm; stepSize   2.00 mm; initialOffset   4.00 mm; sensorX 155.00 mm; start position at (x|y)=(119.92|  0.00) mm
                 getPar(line, pars, "Iin=")
                 getPar(line, pars, "Vin=")
-                getPar(line, pars, "T=")                
-                # Iin=    30.00 mA ,  Vin= 12151.10 mV, T=    18.74 C 
+                getPar(line, pars, "T=")
+                # Iin=    30.00 mA ,  Vin= 12151.10 mV, T=    18.74 C
+                pars["initialOffset"] = 7 # mm
                 continue
             data = line.split()
             values = []

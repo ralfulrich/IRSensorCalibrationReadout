@@ -1,0 +1,4 @@
+# Sensor scan measurement of Sensor IR2
+# Iin=    34.83 mA ,  Vin= 12137.20 mV, T=    19.49 C 
+# scanRangeX 151.50 mm; scanRangeY  70.00 mm; stepSize  20.00 mm; initialOffset   4.00 mm; sensorX 195.50 mm; start position at (x|y)=( 56.17|  0.00) mm
+# iStep, iStep, Pos x, Pos y, nMeas, Meas1 ... MeasN

@@ -1,0 +1,11 @@
+# Sensor scan measurement of Sensor IR1
+# Iin=    34.96 mA ,  Vin= 13138.40 mV, T=    20.68 C 
+# scanRangeX 151.50 mm; scanRangeY  70.00 mm; stepSize   8.00 mm; initialOffset   4.00 mm; sensorX 236.50 mm; start position at (x|y)=(119.92|  0.00) mm
+# iStep, iStep, Pos x, Pos y, nMeas, Meas1 ... MeasN
+    88     88  207.92    0.00   2       507.75       511.42
+    89     89  207.92    8.00   2       187.06       185.84
+    90     90  207.92   16.00   2       117.57       117.49
+    91     91  207.92   24.00   2       117.12       117.14
+    92     92  207.92   32.00   2       117.24       117.18
+    93     93  207.92   40.00   2       117.06       117.05
+    97     97  215.92   64.00   2       116.70       116.82
